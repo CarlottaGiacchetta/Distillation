@@ -18,7 +18,9 @@ class ViT(pl.LightningModule):
         # Supporta sia Namespace che dict, e fallback se args è None
         self.save_hyperparameters()  # logs hyperparameters for reproducibility
     
-        
+        if isinstance(args, argparse.Namespace):
+            args = vars(args)
+            
         self.encoder = get_model(
             arch=args.get("arch", "vit_base"),
             patch_size=args.get("patch_size", 16),
@@ -26,8 +28,11 @@ class ViT(pl.LightningModule):
             img_size=args.get("image_size", 224),
             in_chans=args.get("in_chans", 12), 
         )
-
-        self.finetuning_bands = args.get("finetuning_bands", "rgb")
+        self.num_classes = args.get("num_classes", 19)
+        self.finetune_backbone = args.get("finetune_backbone")
+        self.classifier = nn.Linear(self.encoder.embed_dim, self.num_classes)
+        
+        self.finetuning_bands = args.get("finetuning_bands", "nove")
         self.bands = CONFIG[self.finetuning_bands]["bands"]
         self.mean = CONFIG[self.finetuning_bands]["mean"]
         self.std = CONFIG[self.finetuning_bands]["std"]
@@ -61,11 +66,16 @@ class ViT(pl.LightningModule):
             print(f"[INFO] Unexpected keys: {unexpected}")
 
         if not args.get("finetune_backbone"):
+            print('encoder freezato')
             for param in self.encoder.parameters():
                 param.requires_grad = False
-            self.eval()
+            self.encoder.eval()
 
-        self.image_size = 224
+        self.lr = args.get("lr", 1e-3)
+        self.wd = args.get("wd", 1e-4)
+        self.metric = MultilabelAveragePrecision(num_labels=self.num_classes)
+        self.image_size = args.get("image_size", 224)
+        
 
         
 
@@ -103,7 +113,9 @@ class ViT(pl.LightningModule):
         self.metric.reset()
     
     def configure_optimizers(self):
-        if self.freeze_encoder:
+    
+        if not self.finetune_backbone:
+            print('encoder freezato')
             param_groups = [{"params": self.classifier.parameters(), "lr": self.lr}]
         else:
             param_groups = [

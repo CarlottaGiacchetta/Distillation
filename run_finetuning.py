@@ -8,9 +8,9 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from teachers.ScaleMae import ScaleMAE
-from teachers.ViT import ViTFinetuner
+from teachers.ViT import ViT
 from Dataset import carica_dati
-from utils import print_program_info
+import utils
 
 logger = logging.getLogger()
 
@@ -25,6 +25,14 @@ def get_args():
         default="D:/tesi_carlotta/data",
         help="Path to the dataset directory (default: local path).",
     )
+    
+    parser.add_argument("--finetune_backbone", 
+        type=utils.bool_flag,
+        default=False,
+        help="Se True, finetuning anche del backbone",
+    )
+    
+    
     parser.add_argument(
         "--bands",
         type=str,
@@ -159,13 +167,13 @@ def get_args():
 
 
 def main(args):
-    print_program_info(args)
+    utils.print_program_info(args)
     train_loader, validation_loader = carica_dati(args)
 
     if args.model.lower() == "scalemae":
         model = ScaleMAE(args)
     elif args.model.lower() == "vit":
-        model = ViTFinetuner(args)
+        model = ViT(args)
     else:
         raise ValueError("Invalid model type specified.")
 

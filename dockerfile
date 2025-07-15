@@ -26,5 +26,13 @@ RUN  pip install torchgeo
 
 
 
-#FINETUNING
-CMD ["python", "run_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--fintuning_bands", "rgb", "--output_dir", "models/new/scalemae_RGB/"] 
+#FINETUNING teacher 
+#CMD ["python", "run_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--fintuning_bands", "rgb", "--output_dir", "models/new/scalemae_RGB/", "--checkpoint_dir", "models/new/scalemae_RGB/", "--checkpoint_path", "models/new/scalemae_RGB/"] 
+
+#CMD ["python", "run_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--fintuning_bands", "veg", "--output_dir", "models/new/scalemae_VEG/", "--checkpoint_dir", "models/new/scalemae_VEG/", "--checkpoint_path", "models/new/scalemae_VEG/"] 
+
+#CMD ["python", "run_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--fintuning_bands", "geo", "--output_dir", "models/new/scalemae_GEO/", "--checkpoint_dir", "models/new/scalemae_GEO/", "--checkpoint_path", "models/new/scalemae_GEO/"] 
+
+
+#FINETUNING student
+CMD ["python", "run_finetuning.py", "--batch_size", "64", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/PROVA/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--output_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "16"]

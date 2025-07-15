@@ -386,11 +386,13 @@ def get_model(arch="vit_base", **kwargs):
     canali 1, 2, 3 (B02, B03, B04) e tutti gli altri inizializzati a zero.
     """
     model_class = globals().get(arch)
+    
     if model_class is None:
         raise ValueError(f"Architettura {arch} non trovata tra le definizioni globali.")
     
     model = model_class(**kwargs)
     in_channels = kwargs.get("in_chans", 3)
+    print(in_channels)
 
     if in_channels != 3:
         if hasattr(model, "patch_embed") and hasattr(model.patch_embed, "proj"):
