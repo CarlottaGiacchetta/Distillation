@@ -4,71 +4,22 @@ ARG USER_ID=1006 # uid from the previus step
 ARG USER_GROUP=standard
 ARG USER_GROUP_ID=1006 # gid from the previus step
 ARG USER_HOME=/home/${USER}
-# create a user group and a user (this works only for debian based images)
+
+
 RUN groupadd --gid $USER_GROUP_ID $USER \
     && useradd --uid $USER_ID --gid $USER_GROUP_ID -m $USER
-# setup image istructions
+
+
 RUN apt-get update && apt-get install -y curl
-# set container user
+
+
 USER $USER
 
-#COPY entrypoint.sh ./
-# run script as non-root user
+
 RUN  pip install torchgeo 
-# RUN  pip install tim 
-
-
-#VIT
-
-
-#scheduled
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_tiny", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ViTDistill9/scheduled9", "--teachers", "vit_tinyRGB,vit_tinyVEG,vit_tinyGEO", "--strategy", "[\"abf\", \"rab\", \"mean\"]", "--aggregation_scheduler", "True", "--aggregation_parameter", "{'alpha': 0.9, 'beta': 0.1}"]
-
-
-#static
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_tiny", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ViTDistill9/static0.50.5", "--teachers", "vit_tinyRGB,vit_tinyVEG,vit_tinyGEO", "--strategy", "[\"abf\", \"rab\", \"mean\"]", "--aggregation_scheduler", "False", "--aggregation_parameter", "{'alpha': 0.5, 'beta': 0.5}", "--epochs", "21"]
-
-#concat
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_tiny", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ViTDistill9/concat9", "--teachers", "vit_tinyRGB,vit_tinyVEG,vit_tinyGEO", "--strategy", "[\"mean\"]"]
-
-
-#multiteacher
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_tiny", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ViTDistill9/multiteacher9", "--teachers", "vit_tinyRGB,vit_tinyVEG,vit_tinyGEO", "--strategy", ""]
 
 
 
+#CONCATMEAN 
 
-
-#SCALEMAE
-
-#scheduled
-#CMD ["python", "unicc/main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/scheduled9Large", "--teachers", "scalemae_geo,scalemae_rgb,scalemae_veg", "--strategy", "[\"abf\", \"rab\", \"mean\"]", "--aggregation_scheduler", "True", "--aggregation_parameter", "{'alpha': 0.9, 'beta': 0.1}"]
-
-
-#static
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_tiny", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/static0.50.5", "--teachers", "scalemae_geo,scalemae_rgb,scalemae_veg", "--strategy", "[\"abf\", \"rab\", \"mean\"]", "--aggregation_scheduler", "False", "--aggregation_parameter", "{'alpha': 0.5, 'beta': 0.5}", "--epochs", "21"]
-
-#abfrab
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_tiny", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/abfrab", "--teachers", "scalemae_geo,scalemae_rgb,scalemae_veg", "--strategy", "[\"abf\", \"rab\"]", "--epochs", "21"]
-
-#concat
-#CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/concatMeanLargeAUG1", "--teachers", "scalemae_geo,scalemae_rgb,scalemae_veg", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "num_frames", "1"]
-
-CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/PretrainedConcatMeanLarge", "--teachers", "scalemae_geo,scalemae_rgb,scalemae_veg", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "True", "--patch_size", "14"]
-
-#CMD ["python", "unicc/main_unic.py", "--batch_size", "16", "--data_dir", "dati", "--arch", "time_large", "--saveckpt_freq", "2", "--in_chans", "3", "--output_dir", "ScalemaeDistill9/TimeV4/MultiteacherTimeLarge", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "", "--use_lp", "True", "--Student_strategy", "[\"split\"]", "--num_frames", "3"]
-
-
-#multiteacher 
-#CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Large/ELIMINAAAA", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "", "--Student_strategy", "", "--use_lp", "True", "--transform", "True", "--num_frames", "1"]
-
-#CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/BaselineEMA", "--teachers", "vit_large", "--Teacher_strategy", "", "--transform", "True", "--Student_strategy", "[\"\"]", "--num_frames", "1"]
-
-#CMD ["python", "unicc/main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "2", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/MultiteachEMA", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo,vit_large", "--Teacher_strategy", "", "--use_lp", "True", "--Student_strategy", "[\"\"]", "--num_frames", "1"]
-
-
-
-
-#BOH
-
-# CMD ["python", "unicc/main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_tiny", "--in_chans", "12", "--strategy", "[\"abf\", \"rab\", \"mean\"]", "--output_dir", "Distil12FusionStrategy/abf+rab+mean(0.50.5)", "--saveckpt_freq", "2", "--aggregation_scheduler", "False", "--aggregation_parameter", "{'alpha': 0.5, 'beta': 0.5}"]
+CMD ["python", "main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/ConcatMean", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
