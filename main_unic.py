@@ -41,10 +41,17 @@ def get_args():
         help="Architecture of the student model. "
         "See dinov2/models/vision_transformer.py for options. See dinov2/models/timesformer.py for options.",
     )
+    
     parser.add_argument("--imagenet_pretrained", 
         type=utils.bool_flag,
         default=False,
         help="Se True, carica i pesi ImageNet di default per larch scelto",
+    )
+
+    parser.add_argument("--finetune_backbone", 
+        type=utils.bool_flag,
+        default=False,
+        help="Se True, finetuning anche del backbone",
     )
     
     parser.add_argument(
@@ -341,7 +348,7 @@ def main(args):
             logger.info("Using strategy - identity fallback")
 
 
-    logger.info("Creating student model"))
+    logger.info("Creating student model")
 
     model = build_student_from_args(args)
     model = model.cuda()

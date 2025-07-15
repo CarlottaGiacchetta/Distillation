@@ -8,6 +8,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from teachers.ScaleMae import ScaleMAE
+from teachers.ViT import ViTFinetuner
 from Dataset import carica_dati
 from utils import print_program_info
 
@@ -49,7 +50,14 @@ def get_args():
         help="Number of target classes for BigEarthNet classification.",
     )
     
-    
+
+    parser.add_argument(
+        "--model",
+        type=str,
+        choices=["scalemae", "vit"],
+        default="scalemae",
+        help="Select model to finetune: 'scalemae' or 'vit' (ViT baseline).",
+    )
     # Architecture name, drop_path rate, patch_size etc. can also be set for ViT.
     parser.add_argument(
         "--arch",
@@ -57,7 +65,12 @@ def get_args():
         default="scalemae_large",
         help="ViT architecture to use when selecting the ViT baseline.",
     )
-
+    parser.add_argument(
+        "--in_chans",
+        type=int,
+        default=12,  # adjust accordingly: 3 for RGB or 12 for multispectral data
+        help="Number of input channels for the model (default: 12) only for vit.",
+    )
     parser.add_argument(
         "--patch_size",
         type=int,
@@ -149,7 +162,12 @@ def main(args):
     print_program_info(args)
     train_loader, validation_loader = carica_dati(args)
 
-    model = ScaleMAE(args)
+    if args.model.lower() == "scalemae":
+        model = ScaleMAE(args)
+    elif args.model.lower() == "vit":
+        model = ViTFinetuner(args)
+    else:
+        raise ValueError("Invalid model type specified.")
 
     logger_tb = TensorBoardLogger(os.path.join(args.output_dir, 'tb_logs'), name=f"scalemae_Finetuner")
 
