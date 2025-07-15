@@ -33,7 +33,8 @@ class ScaleMAE(pl.LightningModule):
 
         self.save_hyperparameters()  # salva quelli passati
 
-        self.backbone = scalemae_tiny_patch14()
+        #self.backbone = scalemae_tiny_patch14()
+        self.backbone = scale_mae.scalemae_large_patch16()
         self.classifier = nn.Linear(self.backbone.embed_dim, self.num_classes)
 
         # Metriche
@@ -131,7 +132,7 @@ class ScaleMAE(pl.LightningModule):
 
 
 def scalemae_tiny_patch14( *args: Any, **kwargs: Any
-) -> ScaleMAE:
+) -> scale_mae.ScaleMAE:
     
     model = scale_mae.ScaleMAE(
         patch_size=14,

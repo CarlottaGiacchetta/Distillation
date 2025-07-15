@@ -22,7 +22,7 @@ RUN  pip install torchgeo
 
 #CONCATMEAN 
 
-#CMD ["python", "main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/ConcatMean", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
+CMD ["python", "main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/AAAA", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
 
 
 
@@ -35,4 +35,4 @@ RUN  pip install torchgeo
 
 
 #FINETUNING student
-CMD ["python", "run_finetuning.py", "--batch_size", "64", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/PROVA/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--output_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "16"]
+#CMD ["python", "run_finetuning.py", "--batch_size", "64", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/PROVA/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--output_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "16"]

@@ -302,7 +302,9 @@ class AdaptMLP(nn.Module):
 
 
 def _build_encoder_from_args(args):
+
     if args.arch.startswith("vit"):
+    
         encoder = vision_transformer.get_model(
             arch=args.arch,
             patch_size=args.patch_size,  # cos� compatibile con teacher
@@ -310,9 +312,8 @@ def _build_encoder_from_args(args):
             in_chans=args.in_chans,
             drop_path_rate=args.drop_path_rate,
         )
-        print('imgpret repr:', repr(getattr(args, "imagenet_pretrained", False)))
+                
         if getattr(args, "imagenet_pretrained", False):
-            print('sono dentro ma non dovrei') 
             ckpt_path = IMAGENET_URLS["_".join(args.arch.split("_")[:2])]
             logger.info(f"Loading DINOv2 from {ckpt_path}")
 
