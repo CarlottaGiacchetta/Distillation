@@ -18,8 +18,8 @@ logger = logging.getLogger()
 
 
 IMAGENET_URLS = {
-    "vit_small": "backbonePretrained/dinov2_vits14_reg4_pretrain.pth",
-    "vit_large": "backbonePretrained/dinov2_vitl14_reg4_pretrain.pth",
+    "vit_small": "models/backbonePretrained/dinov2_vits14_reg4_pretrain.pth",
+    "vit_large": "models/backbonePretrained/dinov2_vitl14_reg4_pretrain.pth",
 }
 
 
@@ -310,8 +310,9 @@ def _build_encoder_from_args(args):
             in_chans=args.in_chans,
             drop_path_rate=args.drop_path_rate,
         )
-
+        print('imgpret repr:', repr(getattr(args, "imagenet_pretrained", False)))
         if getattr(args, "imagenet_pretrained", False):
+            print('sono dentro ma non dovrei') 
             ckpt_path = IMAGENET_URLS["_".join(args.arch.split("_")[:2])]
             logger.info(f"Loading DINOv2 from {ckpt_path}")
 
@@ -360,6 +361,10 @@ def load_student_encoder_from_checkpoint(ckpt_fname, ckpt_key="model"):
         ckpt_fname
     )
     ckpt = torch.load(ckpt_fname, "cpu")
+    
+    print("ARGS DUMP:")
+    for k, v in vars(args).items():
+        print(f"  {k}: {v} ({type(v)})")
 
     encoder = _build_encoder_from_args(ckpt["args"])
 
@@ -419,6 +424,10 @@ class IdentityLP(nn.Module):
 
 
 def build_student_from_args(args):
+
+    logger.info("ARGS DUMP:")
+    for k, v in vars(args).items():
+        logger.info(f"  {k}: {v} ({type(v)})")
 
     encoder = _build_encoder_from_args(args)
     

@@ -42,8 +42,8 @@ def get_args():
         "See dinov2/models/vision_transformer.py for options. See dinov2/models/timesformer.py for options.",
     )
     parser.add_argument("--imagenet_pretrained", 
-        type=bool,
-        default=True,
+        type=utils.bool_flag,
+        default=False,
         help="Se True, carica i pesi ImageNet di default per larch scelto",
     )
     
@@ -106,7 +106,7 @@ def get_args():
     )
     parser.add_argument(
         "--aggregation_scheduler",
-        type=bool,
+        type=utils.bool_flag,
         default=False,
         help="cambia i parametri alpha e beta.",
     )
@@ -248,7 +248,7 @@ def get_args():
     parser.add_argument(
         "--transform",
         default=True,
-        type=bool,
+        type=utils.bool_flag,
         help="Do augmentations",
     )
     parser.add_argument(
@@ -295,12 +295,17 @@ def get_args():
     if not isinstance(args.aggregation_parameter, dict):
         raise ValueError("--aggregation_parameter must be a dictionary.")
     os.makedirs(args.output_dir, exist_ok=True)
+    
 
     return args
 
 logger = logging.getLogger()
 
 def main(args):
+
+
+    
+    
     utils.init_distributed_mode(args)
     utils.fix_random_seeds(args.seed + get_global_rank())
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -312,6 +317,7 @@ def main(args):
 
     logger.info("Creating data loaders ...")
     train_loader, val_loader = carica_dati(args)
+
 
     logger.info("Loading teachers ...")
     teachers, teacher_ft_stats, teacher_dims = build_teachers(args.teachers)
@@ -335,7 +341,8 @@ def main(args):
             logger.info("Using strategy - identity fallback")
 
 
-    logger.info("Creating student model")
+    logger.info("Creating student model"))
+
     model = build_student_from_args(args)
     model = model.cuda()
     model = nn.parallel.DistributedDataParallel(

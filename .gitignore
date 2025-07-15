@@ -1,18 +1,6 @@
 unicc/venv
 dati/
 
-outputProva/
-output/
-outputV1/
-outputV2/
-outputV3/
-outputV4/
-output5/
-Distill12/
-Distil12NEWnoConcat/
-Distil12FusionStrategy/
-4teachers/
+models/
 ScalemaeDistill9/
-vitTeachers/
-ViTDistill9/
-backbonePretrained/
+
