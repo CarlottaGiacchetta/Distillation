@@ -55,7 +55,6 @@ def get_teacher_output(
                 tout_dict = teachers[tname].forward_features(image_copy)
           
                 if set(tout_dict.keys()) == {"A", "B", "C"}:
-                    logger.info(f"Teacher {tname} ha output multi-head (A/B/C) - uso la head A per default")
                     for tt in {"A", "B", "C"}:
                         for ttype in ["cls", "patch"]:
                             tout = tout_dict[tt][ttype]
@@ -146,6 +145,14 @@ def get_teacher_output(
             teacher_output = {"mergedFeatures": merged_output["mean"]}
         elif "abf" in merged_output:
             teacher_output = {"mergedFeatures": merged_output["abf"]}
+            
+            
+    print('\nTEACHER:')      
+    for tt in teacher_output:
+        print(tt)
+        for kk in teacher_output[tt]:
+            print(kk)
+            print(teacher_output[tt][kk].shape)
 
     
 

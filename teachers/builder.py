@@ -14,6 +14,7 @@ logger = logging.getLogger()
 
 def build_teachers(
     teacher_names: List[str],
+    loss : str,
 ) -> Union[Dict[str, torch.nn.Module], Dict[str, Dict[str, Dict[str, torch.Tensor]]]]:
     teachers = OrderedDict()
     teacher_ft_stats = OrderedDict()
@@ -21,7 +22,7 @@ def build_teachers(
     for tname in teacher_names:
         tname = tname.strip()
         logger.info("Loading teacher '{}'".format(tname))
-        model = _build_teacher(tname)
+        model = _build_teacher(tname, loss)
         teachers[tname] = model
 
         # buffers for teacher feature statistics
@@ -58,7 +59,7 @@ def build_teachers(
 
 
 
-def _build_teacher(name):
+def _build_teacher(name, loss):
     # name is expected to be in the following format:
     #  dino_vitbase_16
     #  <model_name>_<arch>_<patch_size>
@@ -75,7 +76,7 @@ def _build_teacher(name):
     loader_fn  = cfg["loader"]    
 
     
-    model = loader_fn(ckpt_path)
+    model = loader_fn(ckpt_path, loss)
 
     if ckpt_path and os.path.isfile(ckpt_path):
         logger.info(f"Loading checkpoint for teacher '{name}' from {ckpt_path}")
@@ -93,6 +94,5 @@ def _build_teacher(name):
             param.requires_grad = False
 
     model = model.cuda()
-    logger.info(model)
 
     return model

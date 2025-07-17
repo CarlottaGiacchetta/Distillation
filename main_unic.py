@@ -136,6 +136,12 @@ def get_args():
         help="Probability of dropping a teacher in loss.",
     )
     parser.add_argument(
+        "--loss",
+        type=str,
+        default="cosine", #cross-entropy
+        help="Loss type.",
+    )
+    parser.add_argument(
         "--lam_lcos",
         default=0.5,
         type=float,
@@ -327,7 +333,7 @@ def main(args):
 
 
     logger.info("Loading teachers ...")
-    teachers, teacher_ft_stats, teacher_dims = build_teachers(args.teachers)
+    teachers, teacher_ft_stats, teacher_dims = build_teachers(args.teachers, args.loss)
 
     if not args.Teacher_strategy:
         aggregator = None
