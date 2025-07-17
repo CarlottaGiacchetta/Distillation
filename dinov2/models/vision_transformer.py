@@ -71,6 +71,7 @@ class DinoVisionTransformer(nn.Module):
         interpolate_antialias=False,
         interpolate_offset=0.1,
         qk_norm=False,
+        teacher=False,
     ):
         """
         Args:
@@ -100,7 +101,7 @@ class DinoVisionTransformer(nn.Module):
         """
         super().__init__()
         norm_layer = partial(nn.LayerNorm, eps=1e-6)
-
+        self.teacher = teacher
         self.num_features = (
             self.embed_dim
         ) = embed_dim  # num_features for consistency with other models
@@ -111,14 +112,29 @@ class DinoVisionTransformer(nn.Module):
         self.num_register_tokens = num_register_tokens
         self.interpolate_antialias = interpolate_antialias
         self.interpolate_offset = interpolate_offset
-
-        self.patch_embed = embed_layer(
-            img_size=img_size,
-            patch_size=patch_size,
-            in_chans=in_chans,
-            embed_dim=embed_dim,
-        )
-        num_patches = self.patch_embed.num_patches
+        
+        if teacher:                      # tre PatchEmbed separati
+            self.patch_embed_rgb = embed_layer(
+                img_size=img_size, patch_size=patch_size,
+                in_chans=3, embed_dim=embed_dim
+            )
+            self.patch_embed_veg = embed_layer(
+                img_size=img_size, patch_size=patch_size,
+                in_chans=3, embed_dim=embed_dim
+            )
+            self.patch_embed_geo = embed_layer(
+                img_size=img_size, patch_size=patch_size,
+                in_chans=3, embed_dim=embed_dim
+            )
+            num_patches = self.patch_embed_rgb.num_patches  # tutti uguali
+        else:
+            self.patch_embed = embed_layer(
+                img_size=img_size,
+                patch_size=patch_size,
+                in_chans=in_chans,
+                embed_dim=embed_dim,
+            )
+            num_patches = self.patch_embed.num_patches
 
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(
@@ -237,9 +253,14 @@ class DinoVisionTransformer(nn.Module):
             previous_dtype
         )
 
-    def prepare_tokens_with_masks(self, x, masks=None, registers=None):
+    def prepare_tokens_with_masks(self, x, masks=None, registers=None, modname=None):
         B, nc, w, h = x.shape
-        x = self.patch_embed(x)
+        
+        if modname:
+            patch_embed_layer = getattr(self, f'patch_embed_{modname}')
+            x = patch_embed_layer(x)
+        else:
+            x = self.patch_embed(x)
         if masks is not None:
             x = torch.where(
                 masks.unsqueeze(-1), self.mask_token.to(x.dtype).unsqueeze(0), x
@@ -264,8 +285,12 @@ class DinoVisionTransformer(nn.Module):
 
         return x, _num_reg_tokens
 
-    def forward_features(self, x, masks=None, registers=None):
-        x, num_reg_tokens = self.prepare_tokens_with_masks(x, masks, registers)
+    def forward_features(self, x, masks=None, registers=None, modname=None):
+        B, C, H, W = x.shape
+        x = x.float()
+        if (H != 224) or (W != 224):
+            x = torch.nn.functional.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
+        x, num_reg_tokens = self.prepare_tokens_with_masks(x, masks, registers, modname)
 
         for blk in self.blocks:
             x = blk(x)
@@ -376,6 +401,9 @@ def init_weights_vit_timm(module: nn.Module, name: str = ""):
             nn.init.zeros_(module.bias)
 
 
+
+
+
 import torch
 import torch.nn as nn
 
@@ -392,7 +420,7 @@ def get_model(arch="vit_base", **kwargs):
     
     model = model_class(**kwargs)
     in_channels = kwargs.get("in_chans", 3)
-    print(in_channels)
+
 
     if in_channels != 3:
         if hasattr(model, "patch_embed") and hasattr(model.patch_embed, "proj"):
@@ -463,7 +491,7 @@ def vit_base(patch_size=16, num_register_tokens=0, **kwargs):
     return model
 
 
-def vit_large(patch_size=16, num_register_tokens=0, **kwargs):
+def vit_large(patch_size=16, num_register_tokens=0, teacher=False, in_chans=3, **kwargs):
     model = DinoVisionTransformer(
         patch_size=patch_size,
         embed_dim=1024,
@@ -472,6 +500,8 @@ def vit_large(patch_size=16, num_register_tokens=0, **kwargs):
         mlp_ratio=4,
         block_fn=partial(Block, attn_class=MemEffAttention),
         num_register_tokens=num_register_tokens,
+        teacher=teacher,
+        in_chans=in_chans,
         **kwargs,
     )
     return model

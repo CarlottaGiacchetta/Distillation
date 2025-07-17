@@ -22,7 +22,7 @@ def get_teacher_output(
     strategy: List[str] = None,
     aggregation_parameter: Dict[str, float] = None,
     aggregator=None,
-    use_fp16=True
+    use_fp16=False
 ) -> Dict[str, Dict[str, torch.Tensor]]:
 
     teacher_output = defaultdict(dict)
@@ -53,29 +53,63 @@ def get_teacher_output(
                 image_copy = image_copy[:, bands, :, :]
                 image_copy = (image_copy - mean) / std
                 tout_dict = teachers[tname].forward_features(image_copy)
-        
-                for ttype in ["cls", "patch"]:
-                    key = f"x_norm_{ttype}{'token' if ttype == 'cls' else 'tokens'}"
-                    tout = tout_dict[key]  # (B, L, C)
-                    tout = standard_normalize(
-                        tout,
-                        mean_ema=teacher_ft_stats[tname][ttype]["mean"],
-                        std_ema=teacher_ft_stats[tname][ttype]["std"],
-                        ema_momentum=teacher_ft_stat_ema_momentum,
-                    )
-                    if tout.ndim == 3 and strategy == None:
-                        tout = tout.squeeze(1)  # (B, C) ? (B, 1, C)
-                        
-                    if tout.ndim == 2 and strategy != None:
-                        tout = tout.unsqueeze(1)
-                        
-                    if use_mean or use_abf:
-                        if ttype == "cls":
-                            cls_list.append(tout)
-                        else:
-                            patch_list.append(tout)
-        
-                    teacher_output[tname][ttype] = tout
+          
+                if set(tout_dict.keys()) == {"A", "B", "C"}:
+                    logger.info(f"Teacher {tname} ha output multi-head (A/B/C) - uso la head A per default")
+                    for tt in {"A", "B", "C"}:
+                        for ttype in ["cls", "patch"]:
+                            tout = tout_dict[tt][ttype]
+                            mean_ema = teacher_ft_stats[f"{tname}_{tt}"][ttype]["mean"]
+                            std_ema = teacher_ft_stats[f"{tname}_{tt}"][ttype]["std"]
+                            if ttype == "cls":
+                                if tout.ndim == 3:
+                                    tout = tout.squeeze(1)
+                            elif ttype == "patch":
+                                if tout.ndim == 2:
+                                    tout = tout.unsqueeze(1)
+                            tout = standard_normalize(
+                                tout,
+                                mean_ema=mean_ema,
+                                std_ema=std_ema,
+                                ema_momentum=teacher_ft_stat_ema_momentum,
+                            )
+                            '''
+                            if tout.ndim == 3 and strategy is None:
+                                tout = tout.squeeze(1)
+                            if tout.ndim == 2 and strategy is not None:
+                                tout = tout.unsqueeze(1)'''
+                                
+                            
+                            if use_mean or use_abf:
+                                if ttype == "cls":
+                                    cls_list.append(tout)
+                                else:
+                                    patch_list.append(tout)
+                            teacher_output[f'{tname}_{tt}'][ttype] = tout
+                else:
+                    
+                    for ttype in ["cls", "patch"]:
+                        key = f"x_norm_{ttype}{'token' if ttype == 'cls' else 'tokens'}"
+                        tout = tout_dict[key]  # (B, L, C)
+                        tout = standard_normalize(
+                            tout,
+                            mean_ema=teacher_ft_stats[tname][ttype]["mean"],
+                            std_ema=teacher_ft_stats[tname][ttype]["std"],
+                            ema_momentum=teacher_ft_stat_ema_momentum,
+                        )
+                        if tout.ndim == 3 and strategy == None:
+                            tout = tout.squeeze(1)  # (B, C) ? (B, 1, C)
+                            
+                        if tout.ndim == 2 and strategy != None:
+                            tout = tout.unsqueeze(1)
+                            
+                        if use_mean or use_abf:
+                            if ttype == "cls":
+                                cls_list.append(tout)
+                            else:
+                                patch_list.append(tout)
+            
+                        teacher_output[tname][ttype] = tout
                     
     # ---------------------------------------------
     # 2.  Fusione con l’aggregator (grad-on)
@@ -112,5 +146,7 @@ def get_teacher_output(
             teacher_output = {"mergedFeatures": merged_output["mean"]}
         elif "abf" in merged_output:
             teacher_output = {"mergedFeatures": merged_output["abf"]}
+
+    
 
     return teacher_output

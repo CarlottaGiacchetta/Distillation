@@ -1,8 +1,11 @@
 #from .vit_dino import dino_vitbase
 #from .vit_deit3 import deit3_vitbase
 #from .vit_dbotft import dbotft_vitbase
+from functools import partial
 
 from teachers.ScaleMae import scalemae_RGB, scalemae_VEG, scalemae_GEO
+from dinov2.models.aggregation import build_dinov2large_with_fams
+from dinov2.models.vision_transformer import vit_large
 #from teachers.ViT import ViT, ViT_RGB, ViT_VEG, ViT_GEO, ViT_large
 
 TEACHER_CFG = {
@@ -30,8 +33,16 @@ TEACHER_CFG = {
         "ckpt_key": "model",
         "num_features": 1024,
         "resolution": 224,
-        "finetuning_bands": "geo"
-        
-    }
+        "finetuning_bands": "geo" 
+    },
+
+    "DinoV2Large": {
+        "loader": build_dinov2large_with_fams,  
+        "ckpt_path": "", 
+        "ckpt_key": "model",
+        "num_features": 1024,
+        "resolution": 224,
+        "finetuning_bands": "nove" 
+    },
 
 }

@@ -362,10 +362,6 @@ def load_student_encoder_from_checkpoint(ckpt_fname, ckpt_key="model"):
         ckpt_fname
     )
     ckpt = torch.load(ckpt_fname, "cpu")
-    
-    print("ARGS DUMP:")
-    for k, v in vars(args).items():
-        print(f"  {k}: {v} ({type(v)})")
 
     encoder = _build_encoder_from_args(ckpt["args"])
 
@@ -442,10 +438,16 @@ def build_student_from_args(args):
         }
             
     else:
-        logger.info("Adding one head for each teacher ...")
-        head_dims={
-            tname: TEACHER_CFG[tname.strip()]["num_features"] for tname in args.teachers
-        }
+        head_dims = {}
+        for tname in args.teachers:
+            if "dino" in tname.lower():
+                # aggiungi 3 teste per il teacher Dino
+                for suffix in ["A", "B", "C"]:
+                    head_name = f"{tname}_{suffix}"
+                    head_dims[head_name] = TEACHER_CFG[tname]["num_features"]
+            else:
+                # una testa per ciascun teacher
+                head_dims[tname] = TEACHER_CFG[tname.strip()]["num_features"]
     
     if args.use_lp:
         lp_args = eval(args.lp_args)
