@@ -70,10 +70,7 @@ class PatchEmbed(nn.Module):
 
     def forward(self, x: Tensor) -> Tensor:
         _, _, H, W = x.shape
-        print("input dtype:", x.dtype,
-            "weight dtype:", self.proj.weight.dtype,
-            "bias dtype:", self.proj.bias.dtype)
-
+        
         patch_H, patch_W = self.patch_size
 
         assert (

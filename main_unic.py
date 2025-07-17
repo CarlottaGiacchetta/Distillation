@@ -316,7 +316,8 @@ logger = logging.getLogger()
 
 def main(args):
 
-
+    ema_momentum_start = 0.996      # tipico 0.99–0.999
+    ema_momentum_end   = 0.996
     
     
     utils.init_distributed_mode(args)
@@ -583,6 +584,30 @@ def train_one_epoch(
                 grad_norms = utils.clip_gradients(model, args.clip_grad)
             fp16_scaler.step(optimizer)
             fp16_scaler.update()
+        
+        
+        if 'DinoV2Large' in teachers.keys():
+
+            #logger.info("Updating teacher with EMA: 'DinoV2Large'")
+
+            # ------------- EMA UPDATE SOLO DEL BACKBONE (escludendo patch_embed) ----------------
+            with torch.no_grad():
+                m = args.tnorm_ema_schedule[it]
+                student_backbone = model.module.encoder
+                teacher_backbone = teachers['DinoV2Large'].backbone
+            
+                # prendi solo i parametri del backbone del teacher che NON sono i patch_embed_*
+                for (name, t_param) in teacher_backbone.named_parameters():
+                    if name.startswith("patch_embed_"):
+                        continue  # salta patch_embed_rgb / veg / geo
+                    s_param = dict(student_backbone.named_parameters()).get(name, None)
+                    if s_param is not None:
+                        t_param.data.mul_(m).add_(s_param.data, alpha=1. - m)
+            for n, p in teacher_backbone.named_parameters():
+                if p.requires_grad and p.grad is not None:
+                    logger.warning("ERRORE:", n, "ha gradiente!")
+
+
 
         if grad_norms is not None:
             metric_dict.update(

@@ -146,13 +146,13 @@ def get_teacher_output(
         elif "abf" in merged_output:
             teacher_output = {"mergedFeatures": merged_output["abf"]}
             
-            
+    '''   
     print('\nTEACHER:')      
     for tt in teacher_output:
         print(tt)
         for kk in teacher_output[tt]:
             print(kk)
-            print(teacher_output[tt][kk].shape)
+            print(teacher_output[tt][kk].shape)'''
 
     
 

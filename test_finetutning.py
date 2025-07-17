@@ -15,11 +15,11 @@ from sklearn.metrics import (
 )
 
 from Dataset import carica_dati
-from teachers.utils import print_program_info
+from utils import print_program_info
 
 
 from teachers.ScaleMae import ScaleMAE
-from teachers.ViT import ViTFinetuner  # Assicurati che questo modulo sia disponibile
+from teachers.ViT import ViT  # Assicurati che questo modulo sia disponibile
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -101,6 +101,29 @@ def get_args():
         default=224,
         type=int,
         help="Output path",
+    )
+    
+    parser.add_argument(
+        "--in_chans",
+        type=int,
+        default=12,  # adjust accordingly: 3 for RGB or 12 for multispectral data
+        help="Number of input channels for the model (default: 12).",
+    )
+
+    # Nuovo argomento per scegliere il modello
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="scalemae",
+        choices=["scalemae", "vit"],
+        help="Select model type for infer: 'scalemae' or 'vit'",
+    )
+
+    parser.add_argument(
+        "--subset",
+        type=int,
+        default=None,
+        help="Select model type for infer: 'scalemae' or 'vit'",
     )
 
     args = parser.parse_args()
@@ -190,8 +213,13 @@ def get_metrics(labels, predictions, probabilities):
 def main(args):
     # Carica il checkpoint del modello
     checkpoint_path = args.checkpoint_path
-    model = ScaleMAE.load_from_checkpoint(checkpoint_path, args=args, strict=False)
-    
+    if args.model.lower() == "scalemae":
+        model = ScaleMAE.load_from_checkpoint(checkpoint_path, args=args, strict=False)
+    elif args.model.lower() == "vit":
+        model = ViT.load_from_checkpoint(checkpoint_path, args=args, strict=False)
+    else:
+        raise ValueError("Invalid model type specified.")
+
     model.eval()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)

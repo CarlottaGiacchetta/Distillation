@@ -147,12 +147,12 @@ class UNIC(nn.Module):
         else:
             raise ValueError(f"Nessun match con il nome dell'encoder")
         
-        print('\STUDENT:') 
+        '''print('\STUDENT:') 
         for ss in out:
             print(ss)
             for kk in out[ss]:
                 print(kk)
-                print(out[ss][kk].shape)
+                print(out[ss][kk].shape)'''
 
         return out
 
@@ -172,56 +172,72 @@ class LP(nn.Module):
         midnorm: bool = False,
         std: float = 0.02,
         use_only_last_layer: bool = False,
+        loss: str = "cosine",
     ):
         super().__init__()
 
         self.use_only_last_layer = use_only_last_layer
         
 
-        if which_blocks is None:
-            which_blocks = list(range(n_encoder_blocks))
-        self.which_blocks = which_blocks
         self.n_encoder_blocks = n_encoder_blocks
+        self.loss = loss
+        
+        # ──────────────────────────────────
+        #  A) Modalità CROSS-ENTROPY
+        # ──────────────────────────────────
+        if loss == "cross-entropy":
+            self.heads = nn.ModuleDict({
+                hname: nn.ModuleDict({
+                    "cls":  HeadLogits(input_dim, 19),
+                    "patch": HeadLogits(input_dim, 19),
+                })
+                for hname in head_dims
+            })
+        
+        else:
+            if which_blocks is None:
+                which_blocks = list(range(n_encoder_blocks))
+            self.which_blocks = which_blocks
 
-        def _make_head(output_dim):
-            return nn.ModuleList(
-                [
-                    (
-                        AdaptMLP(
-                            hidden_dim=(
-                                last_hidden_dim
-                                if bix == n_encoder_blocks - 1
-                                else hidden_dim
-                            ),
-                            prenorm=prenorm,
-                            midnorm=midnorm,
-                            dim=input_dim,
-                            output_dim=output_dim,
+            def _make_head(output_dim):
+                return nn.ModuleList(
+                    [
+                        (
+                            AdaptMLP(
+                                hidden_dim=(
+                                    last_hidden_dim
+                                    if bix == n_encoder_blocks - 1
+                                    else hidden_dim
+                                ),
+                                prenorm=prenorm,
+                                midnorm=midnorm,
+                                dim=input_dim,
+                                output_dim=output_dim,
+                            )
+                            if bix in which_blocks
+                            else None
                         )
-                        if bix in which_blocks
-                        else None
+                        for bix in range(n_encoder_blocks)
+                    ] 
+                )
+
+            self.heads = nn.ModuleDict(
+                {
+                    hname: nn.ModuleDict(
+                        {
+                            "cls": _make_head(head_dims[hname]),
+                            "patch": _make_head(head_dims[hname]),
+                        }
                     )
-                    for bix in range(n_encoder_blocks)
-                ]
+                    for hname in head_dims.keys()
+                }
             )
 
-        self.heads = nn.ModuleDict(
-            {
-                hname: nn.ModuleDict(
-                    {
-                        "cls": _make_head(head_dims[hname]),
-                        "patch": _make_head(head_dims[hname]),
-                    }
-                )
-                for hname in head_dims.keys()
-            }
-        )
-
-        for m in self.heads.modules():
-            if isinstance(m, nn.Linear):
-                nn.init.trunc_normal_(m.weight, std=std)
-                if m.bias is not None:
-                    nn.init.constant_(m.bias, 0)
+            for m in self.heads.modules():
+                if isinstance(m, nn.Linear):
+                    nn.init.trunc_normal_(m.weight, std=std)
+                    if m.bias is not None:
+                        nn.init.constant_(m.bias, 0)
 
     def forward(
             self,
@@ -234,9 +250,20 @@ class LP(nn.Module):
         out = defaultdict(dict)
         
 
+        # ── CROSS-ENTROPY: usa SOLO ultimo blocco
+        if self.loss == "cross-entropy":
+            xb_cls   = x_cls[-1]                       # [B, D]
+            xb_patch = x_patch[-1]                     # [B, N, D]
+
+            for hname, head_dict in self.heads.items():
+                out[hname]["cls"]   = head_dict["cls"](xb_cls)
+                out[hname]["patch"] = head_dict["patch"](xb_patch.mean(1))  # opzionale
+
+            return out
+
         for idx, (hname, head_dict) in enumerate(self.heads.items()):
             if self.use_only_last_layer:
-                print('solo ultimo layer')
+                #print('solo ultimo layer')
                 bix = self.n_encoder_blocks - 1
                 xc = head_dict["cls"][bix](x_cls[bix + 1])
                 if strategy == "split":
@@ -261,6 +288,14 @@ class LP(nn.Module):
         return out
         
         
+class HeadLogits(nn.Module):
+    def __init__(self, in_dim, out_dim, temp=0.04):
+        super().__init__()
+        self.fc = nn.Linear(in_dim, out_dim)
+        self.temp = temp
+
+    def forward(self, x):
+        return self.fc(x) / self.temp
 
 
 class AdaptMLP(nn.Module):
@@ -461,6 +496,11 @@ def build_student_from_args(args):
                 # aggiungi 3 teste per il teacher Dino
                 for suffix in ["A", "B", "C"]:
                     head_name = f"{tname}_{suffix}"
+                    '''
+                    if args.loss == "cosine":
+                        head_dims[head_name] = TEACHER_CFG[tname]["num_features"]
+                    elif args.loss == "cross-entropy":
+                        head_dims[head_name] = 19'''
                     head_dims[head_name] = TEACHER_CFG[tname]["num_features"]
             else:
                 use_only_last_layer = False
@@ -472,6 +512,7 @@ def build_student_from_args(args):
         lp = LP(
             input_dim=encoder.embed_dim,
             head_dims=head_dims,
+            loss=args.loss,
             use_only_last_layer=use_only_last_layer,
             n_encoder_blocks=encoder.n_blocks,
             **lp_args,

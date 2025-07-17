@@ -27,7 +27,7 @@ RUN  pip install torchgeo
 
 
 #DINOBACKBONE
-CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/AAAA", "--teachers", "DinoV2Large", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "14", "--loss", "cross-entropy"]
+#CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/cosineLoss", "--teachers", "DinoV2Large", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "14", "--loss", "cosine"]
 
 
 
@@ -40,4 +40,9 @@ CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--ar
 
 
 #FINETUNING student
-#CMD ["python", "run_finetuning.py", "--batch_size", "64", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/PROVA/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--output_dir", "ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "16"]
+#CMD ["python", "run_finetuning.py", "--batch_size", "64", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/ConcatMean/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/ConcatMean/", "--output_dir", "ScalemaeDistill9/Vit_Large/ConcatMean/", "--model", "vit", "--arch", "vit_large", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "16"]
+
+
+#TEST
+CMD ["python", "test_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/PROVA/best-checkpoint020.ckpt", "--output_dir", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--in_chans", "9", "--finetuning_bands", "nove"]
+

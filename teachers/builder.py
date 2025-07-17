@@ -90,8 +90,8 @@ def _build_teacher(name, loss):
                 "The model will start with random weights."
             )
 
-        for param in model.parameters():
-            param.requires_grad = False
+    for param in model.parameters():
+        param.requires_grad = False
 
     model = model.cuda()
 
