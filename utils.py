@@ -174,6 +174,16 @@ def save_model_defn(model, save_path):
     fp.close()
 
 
+
+
+def ema_update(target_sd, source_sd, momentum, skip_prefix=()):
+    for k, v_t in target_sd.items():
+        if any(k.startswith(pref) for pref in skip_prefix):
+            continue
+        v_s = source_sd.get(k, None)
+        if v_s is not None:
+            v_t.mul_(momentum).add_(v_s, alpha=1.0 - momentum)
+
 def get_params_groups(model, save_file_path=None):
     """
     Returns two parameters group, one for regularized parameters with weight decay,
@@ -306,19 +316,32 @@ def standard_normalize(data, mean_ema=None, std_ema=None, ema_momentum=0.1, eps=
     Applies standard normalization to the input tensor.
     Data can be either a 2D or 3D tensor.
     """
+    
     ndims = len(data.shape)
-    assert ndims in (2, 3), "Data must be either 2D or 3D, received: {}".format(ndims)
+    #assert ndims in (2, 3), "Data must be either 2D or 3D, received: {}".format(ndims)
+    # 1) statistiche correnti su batch
+    if data.ndim == 2:            # [B, D]   (cls)
+        dims = (0,)
+    elif data.ndim == 3:          # [B, N, D] (patch)
+        dims = (0, 1)
+    else:
+        raise ValueError(f"Unexpected ndim {x.ndim}")
 
     all_data = concat_all_gather(data.contiguous())
 
     # Compute mean and std over the first dimension.
     # If data is 3D, then compute the mean and std
     # over the first two dimensions.
-    dims = [0]
-    if ndims == 3:
-        dims.append(1)
-    mean = all_data.mean(dim=dims, keepdim=True)
-    std = all_data.std(dim=dims, keepdim=True) + eps
+    #dims = [0]
+    #if ndims == 3:
+    #    dims.append(1)
+    mean = all_data.mean(dim=dims, keepdim=False) #prima True
+    std = all_data.std(dim=dims, keepdim=False) + eps #prima True
+    
+    if mean_ema is not None and mean_ema.shape != mean.shape:
+        mean_ema = mean_ema.view(mean.shape)
+        std_ema  = std_ema.view(std.shape)
+
 
     if mean_ema is None:
         data = (data - mean) / std

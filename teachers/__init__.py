@@ -42,6 +42,7 @@ def get_teacher_output(
             amp_enable = bool(use_fp16) and "vit_tiny" not in tname.lower()
             with torch.cuda.amp.autocast(enabled=amp_enable):
                 image_copy = image
+
                 finetuning_bands = TEACHER_CFG[tname]["finetuning_bands"]
        
                 device = "cuda"
@@ -58,14 +59,30 @@ def get_teacher_output(
                     for tt in {"A", "B", "C"}:
                         for ttype in ["cls", "patch"]:
                             tout = tout_dict[tt][ttype]
+
                             mean_ema = teacher_ft_stats[f"{tname}_{tt}"][ttype]["mean"]
                             std_ema = teacher_ft_stats[f"{tname}_{tt}"][ttype]["std"]
+                          
+                        
                             if ttype == "cls":
-                                if tout.ndim == 3:
-                                    tout = tout.squeeze(1)
-                            elif ttype == "patch":
+                                if tout.ndim == 3 and tout.shape[1] == 1:
+                                    tout = tout[:, 0, :]  # [B, 1, D] ? [B, D]
+                                elif tout.ndim == 1:
+                                    tout = tout.unsqueeze(0)  # [D] ? [1, D]
+                                
+                                assert tout.shape[0] == image.shape[0], f"Expected batch {image.shape[0]}, got {tout.shape[0]}"
+
+
+                            if ttype == "patch":
                                 if tout.ndim == 2:
-                                    tout = tout.unsqueeze(1)
+                                    tout = tout.unsqueeze(0)  # [N, D] ? [1, N, D]
+                                
+                                # ?? sicurezza: dev'essere [B, N, D]
+                                assert tout.ndim == 3, f"Expected [B, N, D], got {tout.shape}"
+                                assert tout.shape[0] == image.shape[0], f"Expected batch {image.shape[0]}, got {tout.shape[0]}"
+
+                            
+                            
                             tout = standard_normalize(
                                 tout,
                                 mean_ema=mean_ema,
@@ -96,8 +113,8 @@ def get_teacher_output(
                             std_ema=teacher_ft_stats[tname][ttype]["std"],
                             ema_momentum=teacher_ft_stat_ema_momentum,
                         )
-                        if tout.ndim == 3 and strategy == None:
-                            tout = tout.squeeze(1)  # (B, C) ? (B, 1, C)
+                        if tout.ndim == 3 and tout.shape[1] == 1 and strategy is None:
+                            tout = tout.squeeze(1)
                             
                         if tout.ndim == 2 and strategy != None:
                             tout = tout.unsqueeze(1)
@@ -146,14 +163,5 @@ def get_teacher_output(
         elif "abf" in merged_output:
             teacher_output = {"mergedFeatures": merged_output["abf"]}
             
-    '''   
-    print('\nTEACHER:')      
-    for tt in teacher_output:
-        print(tt)
-        for kk in teacher_output[tt]:
-            print(kk)
-            print(teacher_output[tt][kk].shape)'''
-
-    
 
     return teacher_output

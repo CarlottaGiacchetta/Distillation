@@ -26,8 +26,12 @@ RUN  pip install torchgeo
 
 
 
+#SINGLE TEACHER
+CMD ["python", "main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/AAAA", "--teachers", "scalemae_rgb", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
+
+
 #DINOBACKBONE
-#CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/cosineLoss", "--teachers", "DinoV2Large", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "14", "--loss", "cosine"]
+#CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/cosineLossGIUSTO", "--teachers", "DinoV2Large", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "14", "--loss", "cosine"]
 
 
 
@@ -44,5 +48,5 @@ RUN  pip install torchgeo
 
 
 #TEST
-CMD ["python", "test_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/PROVA/best-checkpoint020.ckpt", "--output_dir", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--in_chans", "9", "--finetuning_bands", "nove"]
+#CMD ["python", "test_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/PROVA/best-checkpoint020.ckpt", "--output_dir", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/PROVA/", "--model", "vit", "--arch", "vit_large", "--in_chans", "9", "--finetuning_bands", "nove"]
 

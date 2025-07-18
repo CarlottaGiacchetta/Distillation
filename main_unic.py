@@ -593,17 +593,21 @@ def train_one_epoch(
             # ------------- EMA UPDATE SOLO DEL BACKBONE (escludendo patch_embed) ----------------
             with torch.no_grad():
                 m = args.tnorm_ema_schedule[it]
-                student_backbone = model.module.encoder
-                teacher_backbone = teachers['DinoV2Large'].backbone
+                # a) backbone
+                utils.ema_update(
+                    teachers["DinoV2Large"].backbone.state_dict(),
+                    model.module.encoder.state_dict(),
+                    m,
+                    skip_prefix=("patch_embed_",),   # salta eventuali conv d’ingresso
+                )
             
-                # prendi solo i parametri del backbone del teacher che NON sono i patch_embed_*
-                for (name, t_param) in teacher_backbone.named_parameters():
-                    if name.startswith("patch_embed_"):
-                        continue  # salta patch_embed_rgb / veg / geo
-                    s_param = dict(student_backbone.named_parameters()).get(name, None)
-                    if s_param is not None:
-                        t_param.data.mul_(m).add_(s_param.data, alpha=1. - m)
-            for n, p in teacher_backbone.named_parameters():
+                # b) proiezioni (agg_lp  <-->  lp)
+                utils.ema_update(
+                    teachers["DinoV2Large"].agg_lp.state_dict(),
+                    model.module.lp.state_dict(),
+                    m,
+                )
+            for n, p in teachers["DinoV2Large"].named_parameters():
                 if p.requires_grad and p.grad is not None:
                     logger.warning("ERRORE:", n, "ha gradiente!")
 

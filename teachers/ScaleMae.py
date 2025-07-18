@@ -149,19 +149,19 @@ def scalemae_tiny_patch14( *args: Any, **kwargs: Any
     return model
 
 
-def scalemae_RGB(checkpoint_path):
+def scalemae_RGB(checkpoint_path, loss=None):
     model = ScaleMAE.load_from_checkpoint(checkpoint_path)
     model.eval()
     model.to("cuda" if torch.cuda.is_available() else "cpu")
     return model
 
-def scalemae_VEG(checkpoint_path):
+def scalemae_VEG(checkpoint_path, loss=None):
     model = ScaleMAE.load_from_checkpoint(checkpoint_path)
     model.eval()
     model.to("cuda" if torch.cuda.is_available() else "cpu")
     return model
     
-def scalemae_GEO(checkpoint_path):
+def scalemae_GEO(checkpoint_path, loss=None):
     model = ScaleMAE.load_from_checkpoint(checkpoint_path)
     model.eval()
     model.to("cuda" if torch.cuda.is_available() else "cpu")

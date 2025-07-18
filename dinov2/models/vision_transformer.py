@@ -290,12 +290,29 @@ class DinoVisionTransformer(nn.Module):
         x = x.float()
         if (H != 224) or (W != 224):
             x = torch.nn.functional.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
+            
+        if modname:
+            x, num_register_tokens = self.prepare_tokens_with_masks(x, masks=None, registers=None, modname=modname)
+        
+            output_cls = [x[:, 0, :]]
+            output_patch = [x[:, 1 + num_register_tokens :, :]]
+            
+            for blk in self.blocks[0]:
+                x = blk(x)
+                output_cls.append(x[:, 0, :])
+                output_patch.append(x[:, 1 + num_register_tokens :, :])
+            return {
+                "x_norm_clstoken": output_cls,
+                "x_norm_patchtokens": output_patch,
+            }
+                
+                
         x, num_reg_tokens = self.prepare_tokens_with_masks(x, masks, registers, modname)
 
         for blk in self.blocks:
             x = blk(x)
 
-        x_norm = self.norm(x)
+        x_norm = self.norm(x)            
 
         return {
             "x_norm_clstoken": x_norm[:, 0],

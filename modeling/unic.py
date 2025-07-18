@@ -146,13 +146,6 @@ class UNIC(nn.Module):
             out = self.lp(output_cls, output_patch)
         else:
             raise ValueError(f"Nessun match con il nome dell'encoder")
-        
-        '''print('\STUDENT:') 
-        for ss in out:
-            print(ss)
-            for kk in out[ss]:
-                print(kk)
-                print(out[ss][kk].shape)'''
 
         return out
 
@@ -220,7 +213,6 @@ class LP(nn.Module):
                         for bix in range(n_encoder_blocks)
                     ] 
                 )
-
             self.heads = nn.ModuleDict(
                 {
                     hname: nn.ModuleDict(
@@ -240,50 +232,53 @@ class LP(nn.Module):
                         nn.init.constant_(m.bias, 0)
 
     def forward(
-            self,
-            x_cls:  List[torch.Tensor],
-            x_patch: List[torch.Tensor],
-            *,
-            patch_tokens_split: Optional[torch.Tensor] = None,
-            strategy: str = None,
+        self,
+        x_cls:   list[torch.Tensor],     # len = n_blocks+1, ogni elem [B, D]
+        x_patch: list[torch.Tensor],     # len = n_blocks+1, ogni elem [B, N, D]
+        *,
+        patch_tokens_split: torch.Tensor | None = None,  # [B, 3, N, D] se "split"
+        strategy: str | None = None,
     ) -> Dict[str, Dict[str, torch.Tensor]]:
-        out = defaultdict(dict)
-        
 
-        # ── CROSS-ENTROPY: usa SOLO ultimo blocco
-        if self.loss == "cross-entropy":
-            xb_cls   = x_cls[-1]                       # [B, D]
-            xb_patch = x_patch[-1]                     # [B, N, D]
+        out: Dict[str, Dict[str, torch.Tensor]] = defaultdict(dict)
 
-            for hname, head_dict in self.heads.items():
-                out[hname]["cls"]   = head_dict["cls"](xb_cls)
-                out[hname]["patch"] = head_dict["patch"](xb_patch.mean(1))  # opzionale
+        # ------- 1) caso cross-entropy già gestito in __init__ ------------- #
+        if self.loss == "cross-entropy":    # non arriverà qui: return anticipato
+            raise RuntimeError("Should never reach")
 
-            return out
+        # ------- 2) iteriamo sulle head (A / B / C o mergedFeatures) -------- #
+        for idx, (hname, head) in enumerate(self.heads.items()):
 
-        for idx, (hname, head_dict) in enumerate(self.heads.items()):
+            # --- (a) usa SOLO l’ultimo blocco --------------------------------
             if self.use_only_last_layer:
-                #print('solo ultimo layer')
-                bix = self.n_encoder_blocks - 1
-                xc = head_dict["cls"][bix](x_cls[bix + 1])
-                if strategy == "split":
-                    xp = head_dict["patch"][bix](patch_tokens_split[:, idx])
-                else:
-                    xp = head_dict["patch"][bix](x_patch[bix + 1])
-            
-            else:
-                xc, xp = 0, 0 
-                
-                for bix in self.which_blocks:
-                    xc = xc + head_dict["cls"][bix](x_cls[bix + 1])
-                    if strategy == "split":
-                        if bix == self.which_blocks[-1]:
-                            xp = head_dict["patch"][bix](patch_tokens_split[:, idx])
-                    else:
-                        xp = xp + head_dict["patch"][bix](x_patch[bix + 1])
+                bix = self.n_encoder_blocks - 1                 # ultimo block
 
-            out[hname]["cls"] = xc
-            out[hname]["patch"] = xp
+                xc_in = x_cls[bix + 1]                          # [B, D]
+                xp_in = (
+                    patch_tokens_split[:, idx]                  # [B, N, D] split
+                    if strategy == "split"
+                    else x_patch[bix + 1]                       # [B, N, D]
+                )
+
+                xc = head["cls"][bix](xc_in)                    # [B, D]
+                xp = head["patch"][bix](xp_in)                  # [B, …]
+
+            # --- (b) somma / media sui blocchi in which_blocks --------------
+            else:
+                xc = 0
+                xp = 0
+                for bix in self.which_blocks:
+                    xc = xc + head["cls"][bix](x_cls[bix + 1])
+
+                    if strategy == "split":
+                        if bix == self.which_blocks[-1]:         # solo sull’ultimo
+                            xp = head["patch"][bix](patch_tokens_split[:, idx])
+                    else:
+                        xp = xp + head["patch"][bix](x_patch[bix + 1])
+
+            #  ⚠️  NON mettiamo  [-1] !  Manteniamo la batch intera
+            out[hname]["cls"]   = xc                            # shape [B, D]
+            out[hname]["patch"] = xp                            # shape [B, …]
 
         return out
         
@@ -487,6 +482,7 @@ def build_student_from_args(args):
         head_dims = {
             "mergedFeatures": max([TEACHER_CFG[tname]["num_features"] for tname in args.teachers])  # o metti a mano il valore corretto
         }
+        use_only_last_layer = False
             
     else:
         head_dims = {}
