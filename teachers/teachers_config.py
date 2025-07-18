@@ -11,7 +11,7 @@ from dinov2.models.vision_transformer import vit_large
 TEACHER_CFG = {
     "scalemae_rgb": {
         "loader": scalemae_RGB,
-        "ckpt_path": "/raid/home/rsde/cgiacchetta_unic/Distillation/models/scalemae_RGB/best-checkpoint.ckpt", #"/workspace/models/scalemae_RGB/best-checkpoint.ckpt"
+        "ckpt_path": "/raid/home/rsde/cgiacchetta_unic/Distillation/modell/scalemae_RGB/best-checkpoint.ckpt", #"/workspace/models/scalemae_RGB/best-checkpoint.ckpt"
         "ckpt_key": "model",
         "num_features": 1024,
         "resolution": 224,
@@ -20,7 +20,7 @@ TEACHER_CFG = {
     },
     "scalemae_veg": {
         "loader": scalemae_VEG,
-        "ckpt_path": "/raid/home/rsde/cgiacchetta_unic/Distillation/models/scalemae_VEG/best-checkpoint.ckpt",
+        "ckpt_path": "/raid/home/rsde/cgiacchetta_unic/Distillation/modell/scalemae_VEG/best-checkpoint.ckpt",
         "ckpt_key": "model",
         "num_features": 1024,
         "resolution": 224,
@@ -29,7 +29,7 @@ TEACHER_CFG = {
     },
     "scalemae_geo": {
         "loader": scalemae_GEO,
-        "ckpt_path": "/raid/home/rsde/cgiacchetta_unic/Distillation/models/scalemae_GEO/best-checkpoint.ckpt", 
+        "ckpt_path": "/raid/home/rsde/cgiacchetta_unic/Distillation/modell/scalemae_GEO/best-checkpoint.ckpt", 
         "ckpt_key": "model",
         "num_features": 1024,
         "resolution": 224,
