@@ -33,7 +33,10 @@ class UNIC(nn.Module):
         self.num_frames = num_frames
 
     def forward(self, image):
-        image = F.interpolate(image, size=(224, 224), mode='bilinear', align_corners=False)
+        _, _, H, W = image.shape
+        if (H, W) != (224, 224):
+            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            image = F.interpolate(image, size=(224, 224), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
 
         if self.encoder.__class__.__name__.startswith("TimeSformer"): 
             if self.num_frames == 3:

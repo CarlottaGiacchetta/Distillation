@@ -331,6 +331,10 @@ def main(args):
 
     logger.info("Creating data loaders ...")
     train_loader, val_loader = carica_dati(args)
+    
+    sample = next(iter(train_loader))
+    logger.info(f"Shape batch immagini: {sample['image'].shape}")
+
 
 
     logger.info("Loading teachers ...")
@@ -594,18 +598,19 @@ def train_one_epoch(
             with torch.no_grad():
                 m = args.tnorm_ema_schedule[it]
                 # a) backbone
-                utils.ema_update(
-                    teachers["DinoV2Large"].backbone.state_dict(),
-                    model.module.encoder.state_dict(),
-                    m,
-                    skip_prefix=("patch_embed_",),   # salta eventuali conv d’ingresso
+                utils.ema_update_model(
+                    teachers["DinoV2Large"].backbone,
+                    model.module.encoder,
+                    decay=m,
+                    skip_prefixes=("patch_embed",),
                 )
+
             
                 # b) proiezioni (agg_lp  <-->  lp)
-                utils.ema_update(
-                    teachers["DinoV2Large"].agg_lp.state_dict(),
-                    model.module.lp.state_dict(),
-                    m,
+                utils.ema_update_model(
+                    teachers["DinoV2Large"].agg_lp,
+                    model.module.lp,
+                    decay=m,
                 )
             for n, p in teachers["DinoV2Large"].named_parameters():
                 if p.requires_grad and p.grad is not None:

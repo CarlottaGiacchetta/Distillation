@@ -22,7 +22,7 @@ def get_teacher_output(
     strategy: List[str] = None,
     aggregation_parameter: Dict[str, float] = None,
     aggregator=None,
-    use_fp16=False
+    use_fp16=True
 ) -> Dict[str, Dict[str, torch.Tensor]]:
 
     teacher_output = defaultdict(dict)

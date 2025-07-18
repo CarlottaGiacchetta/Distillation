@@ -183,6 +183,36 @@ def ema_update(target_sd, source_sd, momentum, skip_prefix=()):
         v_s = source_sd.get(k, None)
         if v_s is not None:
             v_t.mul_(momentum).add_(v_s, alpha=1.0 - momentum)
+            
+def ema_update_model(ema_model, model, decay, skip_prefixes=()):
+    """
+    Esegue EMA update tra `model` -> `ema_model` in-place.
+    Puoi saltare parametri con certi prefissi.
+
+    Args:
+        ema_model (nn.Module)
+        model (nn.Module)
+        decay (float): valore EMA (es. 0.99)
+        skip_prefixes (tuple[str]): prefissi dei parametri da saltare
+    """
+    for (name_ema, param_ema), (name_model, param_model) in zip(
+        ema_model.named_parameters(), model.named_parameters()
+    ):
+        if any(name_ema.startswith(p) for p in skip_prefixes):
+            continue
+        if param_ema.data.shape != param_model.data.shape:
+            continue  # skip parametri non allineati
+        param_ema.data.mul_(decay).add_(param_model.data, alpha=1 - decay)
+
+    for (name_ema, buffer_ema), (name_model, buffer_model) in zip(
+        ema_model.named_buffers(), model.named_buffers()
+    ):
+        if any(name_ema.startswith(p) for p in skip_prefixes):
+            continue
+        if buffer_ema.data.shape != buffer_model.data.shape:
+            continue
+        buffer_ema.data.copy_(buffer_model.data)
+
 
 def get_params_groups(model, save_file_path=None):
     """

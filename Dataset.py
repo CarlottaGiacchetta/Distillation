@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from torchgeo.datasets import BigEarthNet
 from torchgeo.datamodules import NonGeoDataModule
 from torchgeo.transforms.transforms import AugmentationSequential, _RandomNCrop, _Clamp
+from kornia.augmentation import Resize
 from torchgeo.transforms.color import RandomGrayscale
 import kornia.augmentation as K
 import torch.nn.functional as F
@@ -69,6 +70,7 @@ class CustomBigEarthNetDataModule(NonGeoDataModule):
             num_workers (int): Numero di processi per il DataLoader.
             **kwargs: Altri parametri da passare al dataset.
         """
+        
         self.subset = subset
         self.transform = transform
         self.kwargs = kwargs  
@@ -76,92 +78,72 @@ class CustomBigEarthNetDataModule(NonGeoDataModule):
 
     def setup(self, stage: str = None):
         if stage in ["fit", None]:
-            self.train_dataset = CustomBigEarthNet(
-                split="train", 
-                subset=self.subset,
-                **self.kwargs
-            )
-            self.train_dataset.transform = self.transform
+            self.train_dataset = CustomBigEarthNet(split="train", subset=self.subset, **self.kwargs)
+            self.train_dataset.transforms = self.transform
         if stage in ["fit", "validate", None]:
-            self.val_dataset = CustomBigEarthNet(
-                split="val", 
-                subset=self.subset, 
-                **self.kwargs
-            )
+            self.val_dataset = CustomBigEarthNet(split="val", subset=self.subset, **self.kwargs)
+            self.val_dataset.transforms = self.transform
         if stage in ["test", None]:
-            self.test_dataset = CustomBigEarthNet(
-                split="test", 
-                subset=self.subset, 
-                **self.kwargs
-            )
+            self.test_dataset = CustomBigEarthNet(split="test", subset=self.subset, **self.kwargs)
+            self.test_dataset.transforms = self.transform
 
 def min_max_fn(x):
-    min_val = x.amin(dim=(2, 3), keepdim=True)  # per ogni immagine
+    min_val = x.amin(dim=(2, 3), keepdim=True)
     max_val = x.amax(dim=(2, 3), keepdim=True)
     return (x - min_val) / (max_val - min_val + 1e-8)
 
+   
 
-def carica_dati(args, setup = "fit"):
+class ApplyToSingleImage(torch.nn.Module):
+    def __init__(self, img_size):
+        super().__init__()
+        self.transforms = torch.nn.Sequential(
+            K.Resize((img_size, img_size), p=1.0, keepdim=False),
+            K.RandomHorizontalFlip(p=0.5, keepdim=False),
+            K.RandomVerticalFlip(p=0.5, keepdim=False),
+            K.RandomRotation(degrees=90.0, p=0.5, keepdim=False),
+        )
 
-    if args.transform:
-        transforms = [
-            CustomLambda(min_max_fn),
-            K.RandomHorizontalFlip(p=0.5),
-            K.RandomVerticalFlip(p=0.5),
-            K.RandomRotation(degrees=90.0, p=0.5)
-        ]
-        '''
-        transforms = [
-            CustomLambda(min_max_fn),
-            K.RandomResizedCrop(size=(224,224), scale=(0.5,1.0), ratio=(0.75,1.33), p=0.8),
-            K.ColorJitter(0.4,0.4,0.4,0.1, p=0.8),
-            K.RandomGaussianBlur((3,3), (0.1,2.0), p=0.5),
-            K.RandomHorizontalFlip(p=0.5),
-            K.RandomVerticalFlip(p=0.5),
-            K.RandomRotation(90.0, p=0.5),
-            K.RandomPerspective(0.5, p=0.5)
-        ]'''
+    def forward(self, sample):
+        img = sample["image"].unsqueeze(0)  # da [C, H, W] ? [1, C, H, W]
+        img = min_max_fn(img)
+        img = self.transforms(img)
+        sample["image"] = img.squeeze(0)
+        return sample
 
-        if args.fintuning_bands == "rgb":
-            transforms.append(K.RandomGrayscale(p=0.05))
-        train_transform = AugmentationSequential(*transforms, data_keys=["image"])
+                      
+def get_transforms(img_size):
+    return ApplyToSingleImage(img_size)
 
-    else: 
-        train_transform = None
+
+
+
+
+def carica_dati(args, setup="fit"):
     
+    if args.transform:
+        print("args.transform =", args.transform)
+        train_transform = get_transforms(args.image_size)
+    else:
+        train_transform = AugmentationSequential([
+            K.Resize((args.image_size, args.image_size), p=1.0, align_corners=False)
+        ], data_keys=["image"])
 
     dm = CustomBigEarthNetDataModule(
-            root=args.data_dir,
-            download=True,  
-            #subset=10,
-            batch_size=args.batch_size,
-            num_workers=args.num_workers,
-            bands=args.bands,     # 's1', 's2' oppure 'all'
-            num_classes=args.num_classes,
-            transform=train_transform   # 19 o 43
-        )
-    print('dm', dm)
-    
+        root=args.data_dir,
+        download=True,
+        batch_size=args.batch_size,
+        num_workers=args.num_workers,
+        bands=args.bands,
+        num_classes=args.num_classes,
+        transform=train_transform,
+    )
+
     dm.setup(setup)
 
     if setup == "fit":
-        train = dm.train_dataset
-        train_loader = dm.train_dataloader()
-        print(train)
-        print('--creato train loader')
-
-        validation = dm.val_dataset
-        print(validation)
-        validation_loader = dm.val_dataloader()
-        print('--creato validation loader')
-        
-        return train_loader, validation_loader
-
+        return dm.train_dataloader(), dm.val_dataloader()
     else:
-        test = dm.test_dataset
-        test_loader = dm.test_dataloader()
-        print('--creato test loader')
-
-        return test_loader
+        return dm.test_dataloader()
 
 

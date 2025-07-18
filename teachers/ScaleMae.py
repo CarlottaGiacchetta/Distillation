@@ -70,7 +70,10 @@ class ScaleMAE(pl.LightningModule):
 
     def forward(self, x):
         x = x[:, self.bands, :, :] # x: (B, 12, H, W) → (B, 3, H, W)
-        x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
+        _, _, H, W = x.shape
+        if (H, W) != (self.image_size, self.image_size):
+            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
         x = (x - self.mean.to(x.device)) / self.std.to(x.device)
         features = self.backbone.forward_features(x) # (B, 197, D)
         cls_token = features[:, 0, :]  # (B, D)
@@ -78,8 +81,10 @@ class ScaleMAE(pl.LightningModule):
 
     
     def forward_features(self, x):
-        x = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
-        
+        _, _, H, W = x.shape
+        if (H, W) != (self.image_size, self.image_size):
+            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
         
         features = self.backbone.forward_features(x)  # (B, 1+N, D)
 
@@ -123,7 +128,11 @@ class ScaleMAE(pl.LightningModule):
         with torch.no_grad():
             x = batch["image"]
             x = x[:, self.rgb_band_indices, :, :]
-            x = F.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
+            _, _, H, W = x.shape
+            if (H, W) != (self.image_size, self.image_size):
+                print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+                x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
+
             logits = self(x)
             probs = torch.sigmoid(logits)
             preds = (probs > threshold).int()
