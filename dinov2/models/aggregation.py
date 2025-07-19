@@ -82,12 +82,12 @@ class AggregationLP(nn.Module):
 
 
 class DinoV2LargeThreeFAM(nn.Module):
-    def __init__(self, backbone: nn.Module, embed_dim: int):
+    def __init__(self, encoder: nn.Module, embed_dim: int):
         super().__init__()
-        self.backbone = backbone 
+        self.encoder = encoder 
         from modeling.unic import LP
         self.agg_lp = LP(
-            input_dim=backbone.embed_dim,
+            input_dim=self.encoder.embed_dim,
             head_dims={
                 "A": embed_dim,
                 "B": embed_dim,
@@ -95,7 +95,7 @@ class DinoV2LargeThreeFAM(nn.Module):
             },
             loss="cosine",
             use_only_last_layer=True,
-            n_encoder_blocks=backbone.n_blocks,
+            n_encoder_blocks=self.encoder.n_blocks,
         )              
         
         '''self.agg_lp = AggregationLP(
@@ -111,40 +111,44 @@ class DinoV2LargeThreeFAM(nn.Module):
         '''
 
         # opzionale: congela backbone
-        for p in self.backbone.parameters():
+        for p in self.encoder.parameters():
             p.requires_grad = False
 
     def _token_features(self, x, modname):    
-        feats = self.backbone.forward_features(x,modname=modname)
+        feats = self.encoder.forward_features(x,modname=modname)
         feats["x_norm_clstoken"] = feats["x_norm_clstoken"][-1]       # ? solo l'ultimo CLS token
         feats["x_norm_patchtokens"] = feats["x_norm_patchtokens"][-1] # ? solo l'ultimo PATCH token
         return feats    # [B, N, D]
 
-    def forward_features(self, img):
+    def forward_features(self, img, teacher=True):
+        
+        if not hasattr(self, 'patch_embed_rgb'):
+            feats_avg = self.encoder.forward_features(img)            
             
-        feats_rgb = self._token_features(img[:,0:3], modname="rgb")
-        feats_veg = self._token_features(img[:,3:6], modname="veg")
-        feats_geo = self._token_features(img[:,6:9], modname="geo")
+        else:
+            feats_rgb = self._token_features(img[:,0:3], modname="rgb")
+            feats_veg = self._token_features(img[:,3:6], modname="veg")
+            feats_geo = self._token_features(img[:,6:9], modname="geo")
 
-        feats_all = {}
-        feats_avg = {}
-
-        feats_avg["x_norm_clstoken"] = (
-            feats_rgb["x_norm_clstoken"]
-            + feats_veg["x_norm_clstoken"]
-            + feats_geo["x_norm_clstoken"]
-        ) / 3
-        
-        feats_avg["x_norm_patchtokens"] = (
-            feats_rgb["x_norm_patchtokens"]
-            + feats_veg["x_norm_patchtokens"]
-            + feats_geo["x_norm_patchtokens"]
-        ) / 3
-        
+            feats_all = {}
+            feats_avg = {}
+    
+            feats_avg["x_norm_clstoken"] = (
+                feats_rgb["x_norm_clstoken"]
+                + feats_veg["x_norm_clstoken"]
+                + feats_geo["x_norm_clstoken"]
+            ) / 3
+            
+            feats_avg["x_norm_patchtokens"] = (
+                feats_rgb["x_norm_patchtokens"]
+                + feats_veg["x_norm_patchtokens"]
+                + feats_geo["x_norm_patchtokens"]
+            ) / 3
+            
         
         # --- dopo aver calcolato feats_avg -----------------------------
-        x_cls_list = [None] + [feats_avg["x_norm_clstoken"]] * self.backbone.n_blocks
-        x_patch_list = [None] + [feats_avg["x_norm_patchtokens"]] * self.backbone.n_blocks
+        x_cls_list = [None] + [feats_avg["x_norm_clstoken"]] * self.encoder.n_blocks
+        x_patch_list = [None] + [feats_avg["x_norm_patchtokens"]] * self.encoder.n_blocks
         
         out = self.agg_lp(x_cls_list, x_patch_list)               # ora LP riceve 3-D
 
@@ -161,6 +165,10 @@ class DinoV2LargeThreeFAM(nn.Module):
         )'''
 
         return out
+        
+        
+    def forward(self, img):
+        return self.forward_features(img, teacher=False)
         
         
         
@@ -181,4 +189,26 @@ def build_dinov2large_with_fams(chekpoint="", loss = "cosine"):
         backbone=backbone,
         embed_dim=embed_dim,
     )
+    model.to("cuda" if torch.cuda.is_available() else "cpu")
+    return model
+
+
+def build_dinov2large_baseline(chekpoint="", loss = "cosine"):
+    backbone = vit_large(
+        patch_size=14,
+        teacher=False,
+        in_chans=9
+    )
+    if loss == "cosine":
+        embed_dim=1024
+    elif loss == "cross-entropy":
+        embed_dim=19
+    else: 
+        print('NON CONOSCO LA LOSSS')
+
+    model = DinoV2LargeThreeFAM(
+        encoder=backbone,
+        embed_dim=embed_dim,
+    )
+    model.to("cuda" if torch.cuda.is_available() else "cpu")
     return model

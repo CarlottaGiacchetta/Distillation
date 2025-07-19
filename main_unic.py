@@ -360,8 +360,17 @@ def main(args):
 
 
     logger.info("Creating student model")
+    baselines = [t for t in args.teachers if 'baseline' in t]
 
-    model = build_student_from_args(args)
+    if baselines:
+        from teachers.teachers_config import TEACHER_CFG
+        cfg        = TEACHER_CFG[baselines[0]]
+        ckpt_path  = cfg.get("ckpt_path", "")
+        ckpt_key   = cfg.get("ckpt_key", None)
+        loader_fn  = cfg["loader"]    
+        model = loader_fn(ckpt_path, args.loss)
+    else:
+        model = build_student_from_args(args)
     model = model.cuda()
     model = nn.parallel.DistributedDataParallel(
         model, device_ids=[args.gpu], find_unused_parameters=True
@@ -551,7 +560,14 @@ def train_one_epoch(
         }
 
         with torch.cuda.amp.autocast(fp16_scaler is not None):
-            student_output = model(image)           
+            if args.in_chans == 9 and "DinoV2Large_baseline" in args.teachers:
+                student_output = model(image[:, [1,2,3,4,5,6,7,10,11], :, :])
+                student_output = {
+                    f"DinoV2Large_baseline_{k}": v for k, v in student_output.items()
+                }     
+            else:
+                student_output = model(image) 
+                  
 
             
             teacher_output = get_teacher_output(
@@ -588,31 +604,43 @@ def train_one_epoch(
                 grad_norms = utils.clip_gradients(model, args.clip_grad)
             fp16_scaler.step(optimizer)
             fp16_scaler.update()
-        
-        
-        if 'DinoV2Large' in teachers.keys():
 
             #logger.info("Updating teacher with EMA: 'DinoV2Large'")
 
             # ------------- EMA UPDATE SOLO DEL BACKBONE (escludendo patch_embed) ----------------
             with torch.no_grad():
                 m = args.tnorm_ema_schedule[it]
-                # a) backbone
-                utils.ema_update_model(
-                    teachers["DinoV2Large"].backbone,
-                    model.module.encoder,
-                    decay=m,
-                    skip_prefixes=("patch_embed",),
-                )
+                if "DinoV2Large" in args.teachers:
+                    name = "DinoV2Large"
+                    utils.ema_update_model(
+                        teachers[name].backbone,
+                        model.module.encoder,
+                        decay=m,
+                        skip_prefixes=("patch_embed",),
+                    )
+                    
+                    utils.ema_update_model(
+                        teachers[name].agg_lp,
+                        model.module.lp,
+                        decay=m,
+                    )
 
-            
-                # b) proiezioni (agg_lp  <-->  lp)
-                utils.ema_update_model(
-                    teachers["DinoV2Large"].agg_lp,
-                    model.module.lp,
-                    decay=m,
-                )
-            for n, p in teachers["DinoV2Large"].named_parameters():
+
+                elif "DinoV2Large_baseline" in args.teachers:
+                    name = "DinoV2Large_baseline"
+                    utils.ema_update_model(
+                        teachers[name].encoder,
+                        model.module.encoder,
+                        decay=m,
+                        skip_prefixes=("patch_embed",),
+                    )
+                    utils.ema_update_model(
+                        teachers[name].agg_lp,
+                        model.module.agg_lp,
+                        decay=m,
+                    )
+                
+            for n, p in teachers[name].named_parameters():
                 if p.requires_grad and p.grad is not None:
                     logger.warning("ERRORE:", n, "ha gradiente!")
 

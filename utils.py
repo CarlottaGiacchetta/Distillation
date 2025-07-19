@@ -155,13 +155,16 @@ def save_model_defn(model, save_path):
     fp = open(os.path.join(save_path), "w")
     fp.write("{}".format(model))
     fp.write("\n")
-
+    
+    
     modules = {
-        "model": model,
-        "encoder": model.encoder,
-        "lp": model.lp,
+        k: v for k, v in {
+            "model": model,
+            "encoder": getattr(model, "encoder", None),
+            "lp": getattr(model, "lp", None),
+        }.items() if v is not None
     }
-
+    
     for mname, module in modules.items():
         trainable = sum(p.numel() for p in module.parameters() if p.requires_grad)
         frozen = sum(p.numel() for p in module.parameters() if not p.requires_grad)

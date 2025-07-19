@@ -31,7 +31,7 @@ RUN  pip install torchgeo
 
 
 #DINOBACKBONE
-CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/cosineLossOTTIMIZZATO", "--teachers", "DinoV2Large", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "14", "--loss", "cosine"]
+CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/DinoV2Large_baseline", "--teachers", "DinoV2Large_baseline", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "14", "--loss", "cosine"]
 
 
 

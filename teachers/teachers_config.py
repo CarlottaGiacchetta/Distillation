@@ -4,9 +4,7 @@
 from functools import partial
 
 from teachers.ScaleMae import scalemae_RGB, scalemae_VEG, scalemae_GEO
-from dinov2.models.aggregation import build_dinov2large_with_fams
-from dinov2.models.vision_transformer import vit_large
-#from teachers.ViT import ViT, ViT_RGB, ViT_VEG, ViT_GEO, ViT_large
+from dinov2.models.aggregation import build_dinov2large_with_fams, build_dinov2large_baseline
 
 TEACHER_CFG = {
     "scalemae_rgb": {
@@ -38,6 +36,16 @@ TEACHER_CFG = {
 
     "DinoV2Large": {
         "loader": build_dinov2large_with_fams,  
+        "ckpt_path": "", 
+        "ckpt_key": "model",
+        "num_features": 1024,
+        "resolution": 224,
+        "finetuning_bands": "nove" 
+    },
+
+
+    "DinoV2Large_baseline": {
+        "loader": build_dinov2large_baseline,  
         "ckpt_path": "", 
         "ckpt_key": "model",
         "num_features": 1024,

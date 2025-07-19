@@ -69,7 +69,7 @@ def get_teacher_output(
                                     tout = tout[:, 0, :]  # [B, 1, D] ? [B, D]
                                 elif tout.ndim == 1:
                                     tout = tout.unsqueeze(0)  # [D] ? [1, D]
-                                
+                                    
                                 assert tout.shape[0] == image.shape[0], f"Expected batch {image.shape[0]}, got {tout.shape[0]}"
 
 
