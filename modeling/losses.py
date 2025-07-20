@@ -48,7 +48,6 @@ def loss_per_teacher(
         losses = []
        
         for ttype in tout_dict.keys():
-            
             tout = tout_dict[ttype]
             sout = sout_dict[ttype]
 

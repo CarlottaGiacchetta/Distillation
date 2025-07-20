@@ -28,6 +28,8 @@ def build_teachers(
         # buffers for teacher feature statistics
         ft_dim = TEACHER_CFG[tname]["num_features"]
 
+
+        #DA QUI NUOVO
         if isinstance(model, DinoV2LargeThreeFAM):
             logger.info(f"Teacher '{tname}' is multi-head (A/B/C): creating separate stats for each head")
             for suffix in ["A", "B", "C"]:
@@ -41,6 +43,7 @@ def build_teachers(
                         "std": torch.ones(1, 1, ft_dim).cuda(),
                     },
                 }
+        #A QUI NUOVO
         else:
             teacher_ft_stats[tname] = {
                 "cls": {

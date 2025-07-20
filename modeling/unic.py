@@ -111,7 +111,7 @@ class UNIC(nn.Module):
             output_cls = [x[:, 0, :]]
             output_patch = [x[:, 1 + num_register_tokens :, :]]
             
-            for blk in self.encoder.blocks[0]:
+            for blk in self.encoder.blocks[0]: #QUI SAS
                 x = blk(x)
                 output_cls.append(x[:, 0, :])
                 output_patch.append(x[:, 1 + num_register_tokens :, :])
@@ -172,11 +172,14 @@ class LP(nn.Module):
     ):
         super().__init__()
 
+
+        #DA QUI NUOVO
         self.use_only_last_layer = use_only_last_layer
         
 
         self.n_encoder_blocks = n_encoder_blocks
         self.loss = loss
+        
         
         # ──────────────────────────────────
         #  A) Modalità CROSS-ENTROPY
@@ -189,7 +192,8 @@ class LP(nn.Module):
                 })
                 for hname in head_dims
             })
-        
+        #A QUI NUOVO
+
         else:
             if which_blocks is None:
                 which_blocks = list(range(n_encoder_blocks))
@@ -243,15 +247,20 @@ class LP(nn.Module):
         strategy: str | None = None,
     ) -> Dict[str, Dict[str, torch.Tensor]]:
 
-        out: Dict[str, Dict[str, torch.Tensor]] = defaultdict(dict)
-
+        out = defaultdict(dict)
+        
+        #DA QUI NUOVO
         # ------- 1) caso cross-entropy già gestito in __init__ ------------- #
         if self.loss == "cross-entropy":    # non arriverà qui: return anticipato
             raise RuntimeError("Should never reach")
+        #A QUI NUOVO
 
         # ------- 2) iteriamo sulle head (A / B / C o mergedFeatures) -------- #
         for idx, (hname, head) in enumerate(self.heads.items()):
+            xc, xp = 0, 0 
 
+
+            #DA QUI NUOVO
             # --- (a) usa SOLO l’ultimo blocco --------------------------------
             if self.use_only_last_layer:
                 bix = self.n_encoder_blocks - 1                 # ultimo block
@@ -265,23 +274,20 @@ class LP(nn.Module):
 
                 xc = head["cls"][bix](xc_in)                    # [B, D]
                 xp = head["patch"][bix](xp_in)                  # [B, …]
+            #A QUI NUOVO
 
             # --- (b) somma / media sui blocchi in which_blocks --------------
             else:
-                xc = 0
-                xp = 0
                 for bix in self.which_blocks:
                     xc = xc + head["cls"][bix](x_cls[bix + 1])
-
                     if strategy == "split":
                         if bix == self.which_blocks[-1]:         # solo sull’ultimo
                             xp = head["patch"][bix](patch_tokens_split[:, idx])
                     else:
                         xp = xp + head["patch"][bix](x_patch[bix + 1])
 
-            #  ⚠️  NON mettiamo  [-1] !  Manteniamo la batch intera
-            out[hname]["cls"]   = xc                            # shape [B, D]
-            out[hname]["patch"] = xp                            # shape [B, …]
+            out[hname]["cls"]   = xc                           
+            out[hname]["patch"] = xp                           
 
         return out
         
@@ -485,11 +491,14 @@ def build_student_from_args(args):
         head_dims = {
             "mergedFeatures": max([TEACHER_CFG[tname]["num_features"] for tname in args.teachers])  # o metti a mano il valore corretto
         }
+        #DA QUI NUOVO
         use_only_last_layer = False
-            
+        #A QUI NUOVO
+
     else:
         head_dims = {}
         for tname in args.teachers:
+            #DA QUI NUOVO
             if "dino" in tname.lower():
                 use_only_last_layer = True
                 # aggiungi 3 teste per il teacher Dino
@@ -501,6 +510,8 @@ def build_student_from_args(args):
                     elif args.loss == "cross-entropy":
                         head_dims[head_name] = 19'''
                     head_dims[head_name] = TEACHER_CFG[tname]["num_features"]
+            #A QUI NUOVO
+
             else:
                 use_only_last_layer = False
                 # una testa per ciascun teacher

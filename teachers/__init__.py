@@ -54,7 +54,8 @@ def get_teacher_output(
                 image_copy = image_copy[:, bands, :, :]
                 image_copy = (image_copy - mean) / std
                 tout_dict = teachers[tname].forward_features(image_copy)
-          
+
+                #da qui nuovo
                 if set(tout_dict.keys()) == {"A", "B", "C"}:
                     for tt in {"A", "B", "C"}:
                         for ttype in ["cls", "patch"]:
@@ -102,6 +103,7 @@ def get_teacher_output(
                                 else:
                                     patch_list.append(tout)
                             teacher_output[f'{tname}_{tt}'][ttype] = tout
+                #a qui nuovo
                 else:
                     
                     for ttype in ["cls", "patch"]:
@@ -128,7 +130,7 @@ def get_teacher_output(
                         teacher_output[tname][ttype] = tout
                     
     # ---------------------------------------------
-    # 2.  Fusione con l’aggregator (grad-on)
+    # 2.  Fusione con lï¿½aggregator (grad-on)
     # ---------------------------------------------
     merged_output = {}
 

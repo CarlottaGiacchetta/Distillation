@@ -256,9 +256,11 @@ class DinoVisionTransformer(nn.Module):
     def prepare_tokens_with_masks(self, x, masks=None, registers=None, modname=None):
         B, nc, w, h = x.shape
         
+        #DA QUI NUOVO
         if modname:
             patch_embed_layer = getattr(self, f'patch_embed_{modname}')
             x = patch_embed_layer(x)
+        #A QUI NUOVO
         else:
             x = self.patch_embed(x)
         if masks is not None:
@@ -287,10 +289,12 @@ class DinoVisionTransformer(nn.Module):
 
     def forward_features(self, x, masks=None, registers=None, modname=None):
         B, C, H, W = x.shape
-        x = x.float()
+        #x = x.float() #PRIMA NON C'ERA
         if (H != 224) or (W != 224):
             x = torch.nn.functional.interpolate(x, size=(224, 224), mode='bilinear', align_corners=False)
-            
+
+
+        #DA QUI NUOVO   
         if modname:
             x, num_register_tokens = self.prepare_tokens_with_masks(x, masks=None, registers=None, modname=modname)
         
@@ -306,7 +310,10 @@ class DinoVisionTransformer(nn.Module):
                 "x_norm_patchtokens": output_patch,
             }
                 
-                
+        #A QUI NUOVO
+
+
+
         x, num_reg_tokens = self.prepare_tokens_with_masks(x, masks, registers, modname)
 
         for blk in self.blocks:

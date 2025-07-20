@@ -351,30 +351,22 @@ def standard_normalize(data, mean_ema=None, std_ema=None, ema_momentum=0.1, eps=
     """
     
     ndims = len(data.shape)
-    #assert ndims in (2, 3), "Data must be either 2D or 3D, received: {}".format(ndims)
-    # 1) statistiche correnti su batch
-    if data.ndim == 2:            # [B, D]   (cls)
-        dims = (0,)
-    elif data.ndim == 3:          # [B, N, D] (patch)
-        dims = (0, 1)
-    else:
-        raise ValueError(f"Unexpected ndim {x.ndim}")
-
+    assert ndims in (2, 3), "Data must be either 2D or 3D, received: {}".format(ndims)
     all_data = concat_all_gather(data.contiguous())
 
     # Compute mean and std over the first dimension.
     # If data is 3D, then compute the mean and std
     # over the first two dimensions.
-    #dims = [0]
-    #if ndims == 3:
-    #    dims.append(1)
-    mean = all_data.mean(dim=dims, keepdim=False) #prima True
-    std = all_data.std(dim=dims, keepdim=False) + eps #prima True
+    dims = [0]
+    if ndims == 3:
+        dims.append(1)
+
+    mean = all_data.mean(dim=dims, keepdim=True) #prima True
+    std = all_data.std(dim=dims, keepdim=True) + eps #prima True
     
     if mean_ema is not None and mean_ema.shape != mean.shape:
         mean_ema = mean_ema.view(mean.shape)
         std_ema  = std_ema.view(std.shape)
-
 
     if mean_ema is None:
         data = (data - mean) / std

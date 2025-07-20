@@ -316,10 +316,6 @@ logger = logging.getLogger()
 
 def main(args):
 
-    ema_momentum_start = 0.996      # tipico 0.99–0.999
-    ema_momentum_end   = 0.996
-    
-    
     utils.init_distributed_mode(args)
     utils.fix_random_seeds(args.seed + get_global_rank())
     torch.backends.cuda.matmul.allow_tf32 = True
@@ -360,6 +356,8 @@ def main(args):
 
 
     logger.info("Creating student model")
+
+    #DA QUI NUOVO
     baselines = [t for t in args.teachers if 'baseline' in t]
 
     if baselines:
@@ -369,6 +367,8 @@ def main(args):
         ckpt_key   = cfg.get("ckpt_key", None)
         loader_fn  = cfg["loader"]    
         model = loader_fn(ckpt_path, args.loss)
+    #A QUI NUOVO
+
     else:
         model = build_student_from_args(args)
     model = model.cuda()
@@ -560,11 +560,13 @@ def train_one_epoch(
         }
 
         with torch.cuda.amp.autocast(fp16_scaler is not None):
+            #DA QUI NUOVO
             if args.in_chans == 9 and "DinoV2Large_baseline" in args.teachers:
                 student_output = model(image[:, [1,2,3,4,5,6,7,10,11], :, :])
                 student_output = {
                     f"DinoV2Large_baseline_{k}": v for k, v in student_output.items()
-                }     
+                }   
+            #A QUI NUOVO  
             else:
                 student_output = model(image) 
                   
@@ -607,7 +609,10 @@ def train_one_epoch(
 
             #logger.info("Updating teacher with EMA: 'DinoV2Large'")
 
-            # ------------- EMA UPDATE SOLO DEL BACKBONE (escludendo patch_embed) ----------------
+        #DA QUI NUOVO
+        # ------------- EMA UPDATE SOLO DEL BACKBONE (escludendo patch_embed) ----------------
+        if "DinoV2Large" or "DinoV2Large_baseline" in  args.teachers:
+            logger.info('faccio media mobile')
             with torch.no_grad():
                 m = args.tnorm_ema_schedule[it]
                 if "DinoV2Large" in args.teachers:
@@ -639,12 +644,12 @@ def train_one_epoch(
                         model.module.agg_lp,
                         decay=m,
                     )
-                
-            for n, p in teachers[name].named_parameters():
-                if p.requires_grad and p.grad is not None:
-                    logger.warning("ERRORE:", n, "ha gradiente!")
+                    
+                for n, p in teachers[name].named_parameters():
+                    if p.requires_grad and p.grad is not None:
+                        logger.warning("ERRORE:", n, "ha gradiente!")
 
-
+        #A QUI NUOVO 
 
         if grad_norms is not None:
             metric_dict.update(
