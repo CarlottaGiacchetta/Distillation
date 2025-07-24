@@ -84,6 +84,7 @@ class AggregationLP(nn.Module):
 class DinoV2LargeThreeFAM(nn.Module):
     def __init__(self, encoder: nn.Module, embed_dim: int):
         super().__init__()
+        self.image_size = 224
         self.encoder = encoder 
         from modeling.unic import LP
         self.agg_lp = LP(
@@ -121,8 +122,13 @@ class DinoV2LargeThreeFAM(nn.Module):
         return feats    # [B, N, D]
 
     def forward_features(self, img, teacher=True):
-        
-        if not hasattr(self, 'patch_embed_rgb'):
+    
+        _, _, H, W = img.shape
+        if (H, W) != (self.image_size, self.image_size):
+            #print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            img = torch.nn.functional.interpolate(img, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) ? (B, 3, 224, 224)
+    
+        if not hasattr(self.encoder, 'patch_embed_rgb'):
             feats_avg = self.encoder.forward_features(img)            
             
         else:
@@ -186,7 +192,7 @@ def build_dinov2large_with_fams(chekpoint="", loss = "cosine"):
         print('NON CONOSCO LA LOSSS')
 
     model = DinoV2LargeThreeFAM(
-        backbone=backbone,
+        encoder=backbone,
         embed_dim=embed_dim,
     )
     model.to("cuda" if torch.cuda.is_available() else "cpu")

@@ -341,7 +341,7 @@ def main(args):
         has_trainable_params = None
 
     else:
-        logger.info("Build aggregator ...", args.Teacher_strategy)
+        logger.info(f"Build aggregator ... {args.Teacher_strategy}")
         aggregator = TeacherAggregator(teacher_dims, args.Teacher_strategy).cuda()
     
         # Controlla se ha parametri che richiedono gradiente
@@ -372,6 +372,11 @@ def main(args):
     else:
         model = build_student_from_args(args)
     model = model.cuda()
+    # ? Forza contiguità su tutti i parametri prima di avvolgere in DDP
+    for name, param in model.named_parameters():
+        if not param.data.is_contiguous():
+            param.data = param.data.contiguous()
+            logger.info(f"?? Parametro reso contiguo: {name}")
     model = nn.parallel.DistributedDataParallel(
         model, device_ids=[args.gpu], find_unused_parameters=True
     )
@@ -611,14 +616,13 @@ def train_one_epoch(
 
         #DA QUI NUOVO
         # ------------- EMA UPDATE SOLO DEL BACKBONE (escludendo patch_embed) ----------------
-        if "DinoV2Large" or "DinoV2Large_baseline" in  args.teachers:
-            logger.info('faccio media mobile')
+        if "DinoV2Large" in args.teachers or "DinoV2Large_baseline" in args.teachers:
             with torch.no_grad():
                 m = args.tnorm_ema_schedule[it]
                 if "DinoV2Large" in args.teachers:
                     name = "DinoV2Large"
                     utils.ema_update_model(
-                        teachers[name].backbone,
+                        teachers[name].encoder,
                         model.module.encoder,
                         decay=m,
                         skip_prefixes=("patch_embed",),

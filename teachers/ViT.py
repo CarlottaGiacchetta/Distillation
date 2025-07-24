@@ -83,7 +83,7 @@ class ViT(pl.LightningModule):
         x = x[:, self.bands, :, :]
         _, _, H, W = x.shape
         if (H, W) != (self.image_size, self.image_size):
-            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            #print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
             x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
         x = (x - self.mean.to(x.device)) / self.std.to(x.device)
         features = self.encoder.forward_features(x)

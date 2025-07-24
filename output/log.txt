@@ -1,0 +1,114 @@
+I20250724 07:33:12 139 root utils.py:126] Args:
+I20250724 07:33:12 139 root utils.py:128] 	Student_strategy: []
+I20250724 07:33:12 139 root utils.py:128] 	Teacher_strategy: []
+I20250724 07:33:12 139 root utils.py:128] 	aggregation_parameter: {'alpha': 0.9, 'beta': 0.1}
+I20250724 07:33:12 139 root utils.py:128] 	aggregation_scheduler: False
+I20250724 07:33:12 139 root utils.py:128] 	arch: vit_base
+I20250724 07:33:12 139 root utils.py:128] 	bands: s2
+I20250724 07:33:12 139 root utils.py:128] 	batch_size: 128
+I20250724 07:33:12 139 root utils.py:128] 	batch_size_per_gpu: 128
+I20250724 07:33:12 139 root utils.py:128] 	clip_grad: 0.0
+I20250724 07:33:12 139 root utils.py:128] 	data_dir: None
+I20250724 07:33:12 139 root utils.py:128] 	dist_url: env://
+I20250724 07:33:12 139 root utils.py:128] 	drop_path_rate: 0.1
+I20250724 07:33:12 139 root utils.py:128] 	epochs: 200
+I20250724 07:33:12 139 root utils.py:128] 	finetune_backbone: False
+I20250724 07:33:12 139 root utils.py:128] 	fintuning_bands: 
+I20250724 07:33:12 139 root utils.py:128] 	gpu: 0
+I20250724 07:33:12 139 root utils.py:128] 	image_size: 224
+I20250724 07:33:12 139 root utils.py:128] 	imagenet_pretrained: False
+I20250724 07:33:12 139 root utils.py:128] 	in_chans: 12
+I20250724 07:33:12 139 root utils.py:128] 	lam_lcos: 0.5
+I20250724 07:33:12 139 root utils.py:128] 	lam_lsl1: 0.5
+I20250724 07:33:12 139 root utils.py:128] 	local_rank: 0
+I20250724 07:33:12 139 root utils.py:128] 	loss: cosine
+I20250724 07:33:12 139 root utils.py:128] 	lp_args: {'std': 0.02}
+I20250724 07:33:12 139 root utils.py:128] 	lr: 0.0003
+I20250724 07:33:12 139 root utils.py:128] 	min_lr: 1e-06
+I20250724 07:33:12 139 root utils.py:128] 	num_classes: 19
+I20250724 07:33:12 139 root utils.py:128] 	num_cpus: 80
+I20250724 07:33:12 139 root utils.py:128] 	num_frames: 3
+I20250724 07:33:12 139 root utils.py:128] 	num_workers: 12
+I20250724 07:33:12 139 root utils.py:128] 	optim_args: {'betas':(0.9, 0.99), 'eps':1e-8}
+I20250724 07:33:12 139 root utils.py:128] 	output_dir: ./output
+I20250724 07:33:12 139 root utils.py:128] 	patch_size: 16
+I20250724 07:33:12 139 root utils.py:128] 	rank: 0
+I20250724 07:33:12 139 root utils.py:128] 	saveckpt_freq: 20
+I20250724 07:33:12 139 root utils.py:128] 	seed: 22
+I20250724 07:33:12 139 root utils.py:128] 	t_drop_prob: 0.5
+I20250724 07:33:12 139 root utils.py:128] 	teachers: ['scalemae_rgb', 'scalemae_veg', 'scalemae_geo']
+I20250724 07:33:12 139 root utils.py:128] 	tnorm_ema_momentum_end: 0.001
+I20250724 07:33:12 139 root utils.py:128] 	tnorm_ema_momentum_start: 1.0
+I20250724 07:33:12 139 root utils.py:128] 	transform: True
+I20250724 07:33:12 139 root utils.py:128] 	use_fp16: True
+I20250724 07:33:12 139 root utils.py:128] 	use_lp: True
+I20250724 07:33:12 139 root utils.py:128] 	warmup_epochs: 10
+I20250724 07:33:12 139 root utils.py:128] 	wd: 0.03
+I20250724 07:33:12 139 root utils.py:128] 	world_size: 1
+I20250724 07:33:12 139 root utils.py:138] Env vars:
+I20250724 07:33:12 139 root utils.py:147] 	ONEDAL_NUM_THREADS=(unset)
+I20250724 07:33:12 139 root utils.py:147] 	MKL_NUM_THREADS=(unset)
+I20250724 07:33:12 139 root utils.py:147] 	OMP_NUM_THREADS=(unset)
+I20250724 07:33:12 139 root utils.py:147] 	KMP_AFFINITY=(unset)
+I20250724 07:33:12 139 root utils.py:147] 	KMP_BLOCKTIME=(unset)
+I20250724 07:33:12 139 root utils.py:147] 	MYDEBUG=(unset)
+I20250724 07:33:12 139 root utils.py:149] Script caller: main_unic.py
+I20250724 07:33:12 139 unic helpers.py:43] Tensorboard directory: ./output/tb
+I20250724 07:33:12 139 root main_unic.py:328] Creating data loaders ...
+I20250724 07:34:05 137 root utils.py:126] Args:
+I20250724 07:34:05 137 root utils.py:128] 	Student_strategy: []
+I20250724 07:34:05 137 root utils.py:128] 	Teacher_strategy: []
+I20250724 07:34:05 137 root utils.py:128] 	aggregation_parameter: {'alpha': 0.9, 'beta': 0.1}
+I20250724 07:34:05 137 root utils.py:128] 	aggregation_scheduler: False
+I20250724 07:34:05 137 root utils.py:128] 	arch: vit_base
+I20250724 07:34:05 137 root utils.py:128] 	bands: s2
+I20250724 07:34:05 137 root utils.py:128] 	batch_size: 128
+I20250724 07:34:05 137 root utils.py:128] 	batch_size_per_gpu: 128
+I20250724 07:34:05 137 root utils.py:128] 	clip_grad: 0.0
+I20250724 07:34:05 137 root utils.py:128] 	data_dir: None
+I20250724 07:34:05 137 root utils.py:128] 	dist_url: env://
+I20250724 07:34:05 137 root utils.py:128] 	drop_path_rate: 0.1
+I20250724 07:34:05 137 root utils.py:128] 	epochs: 200
+I20250724 07:34:05 137 root utils.py:128] 	finetune_backbone: False
+I20250724 07:34:05 137 root utils.py:128] 	fintuning_bands: 
+I20250724 07:34:05 137 root utils.py:128] 	gpu: 0
+I20250724 07:34:05 137 root utils.py:128] 	image_size: 224
+I20250724 07:34:05 137 root utils.py:128] 	imagenet_pretrained: False
+I20250724 07:34:05 137 root utils.py:128] 	in_chans: 12
+I20250724 07:34:05 137 root utils.py:128] 	lam_lcos: 0.5
+I20250724 07:34:05 137 root utils.py:128] 	lam_lsl1: 0.5
+I20250724 07:34:05 137 root utils.py:128] 	local_rank: 0
+I20250724 07:34:05 137 root utils.py:128] 	loss: cosine
+I20250724 07:34:05 137 root utils.py:128] 	lp_args: {'std': 0.02}
+I20250724 07:34:05 137 root utils.py:128] 	lr: 0.0003
+I20250724 07:34:05 137 root utils.py:128] 	min_lr: 1e-06
+I20250724 07:34:05 137 root utils.py:128] 	num_classes: 19
+I20250724 07:34:05 137 root utils.py:128] 	num_cpus: 80
+I20250724 07:34:05 137 root utils.py:128] 	num_frames: 3
+I20250724 07:34:05 137 root utils.py:128] 	num_workers: 12
+I20250724 07:34:05 137 root utils.py:128] 	optim_args: {'betas':(0.9, 0.99), 'eps':1e-8}
+I20250724 07:34:05 137 root utils.py:128] 	output_dir: ./output
+I20250724 07:34:05 137 root utils.py:128] 	patch_size: 16
+I20250724 07:34:05 137 root utils.py:128] 	rank: 0
+I20250724 07:34:05 137 root utils.py:128] 	saveckpt_freq: 20
+I20250724 07:34:05 137 root utils.py:128] 	seed: 22
+I20250724 07:34:05 137 root utils.py:128] 	t_drop_prob: 0.5
+I20250724 07:34:05 137 root utils.py:128] 	teachers: ['scalemae_rgb', 'scalemae_veg', 'scalemae_geo']
+I20250724 07:34:05 137 root utils.py:128] 	tnorm_ema_momentum_end: 0.001
+I20250724 07:34:05 137 root utils.py:128] 	tnorm_ema_momentum_start: 1.0
+I20250724 07:34:05 137 root utils.py:128] 	transform: True
+I20250724 07:34:05 137 root utils.py:128] 	use_fp16: True
+I20250724 07:34:05 137 root utils.py:128] 	use_lp: True
+I20250724 07:34:05 137 root utils.py:128] 	warmup_epochs: 10
+I20250724 07:34:05 137 root utils.py:128] 	wd: 0.03
+I20250724 07:34:05 137 root utils.py:128] 	world_size: 1
+I20250724 07:34:05 137 root utils.py:138] Env vars:
+I20250724 07:34:05 137 root utils.py:147] 	ONEDAL_NUM_THREADS=(unset)
+I20250724 07:34:05 137 root utils.py:147] 	MKL_NUM_THREADS=(unset)
+I20250724 07:34:05 137 root utils.py:147] 	OMP_NUM_THREADS=(unset)
+I20250724 07:34:05 137 root utils.py:147] 	KMP_AFFINITY=(unset)
+I20250724 07:34:05 137 root utils.py:147] 	KMP_BLOCKTIME=(unset)
+I20250724 07:34:05 137 root utils.py:147] 	MYDEBUG=(unset)
+I20250724 07:34:05 137 root utils.py:149] Script caller: main_unic.py
+I20250724 07:34:05 137 unic helpers.py:43] Tensorboard directory: ./output/tb
+I20250724 07:34:05 137 root main_unic.py:328] Creating data loaders ...

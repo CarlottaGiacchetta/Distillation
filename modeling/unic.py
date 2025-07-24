@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from dinov2.models import vision_transformer
+from dinov2.models import vision_transformer, grouping
 from timesformer import timesformer 
 from teachers.config import CONFIG
 from dinov2.logging import setup_logging, ExternalLogger, MetricLogger
@@ -35,7 +35,7 @@ class UNIC(nn.Module):
     def forward(self, image):
         _, _, H, W = image.shape
         if (H, W) != (224, 224):
-            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            #print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
             image = F.interpolate(image, size=(224, 224), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
 
         if self.encoder.__class__.__name__.startswith("TimeSformer"): 
@@ -43,8 +43,11 @@ class UNIC(nn.Module):
                 band = "nove"
             elif self.num_frames == 4:
                 band = "all"
+        elif self.encoder.__class__.__name__.startswith("GroupChannelsVisionTransformer"):
+            band = "all"
         else:
             band = "nove"
+            
         
         image = image[:, CONFIG[band]['bands'], :]
         std = CONFIG[band]['std']
@@ -104,6 +107,71 @@ class UNIC(nn.Module):
                 output_cls.append(x[:, 0])
                 output_patch.append(x[:, 1:])
             num_register_tokens = 0  
+        
+        elif self.encoder.__class__.__name__.startswith("GroupChannelsVisionTransformer"): 
+            b, C_all, H, W = image.shape
+        
+            x = image
+            x_c_embed = []
+            
+            for i, group in enumerate(self.encoder.channel_groups):
+                               
+                x_c = x[:, group, :, :]
+                x_c_embed.append(self.encoder.patch_embed[i](x_c))  # (N, L, D)
+            
+
+            x = torch.stack(x_c_embed, dim=1)  # (N, G, L, D)
+            _, G, L, D = x.shape
+            
+            # add channel embed
+            channel_embed = self.encoder.channel_embed.unsqueeze(2)  # (1, c, 1, cD)
+            pos_embed = self.encoder.pos_embed[:, 1:, :].unsqueeze(1)  # (1, 1, L, pD)
+    
+            # Channel embed same across (x,y) position, and pos embed same across channel (c)
+            #channel_embed = channel_embed.expand(-1, -1, pos_embed.shape[2], -1)  # (1, c, L, cD)
+            #channel_embed = channel_embed.expand(-1, -1, pos_embed.shape[2], -1).contiguous()
+            channel_embed = channel_embed.repeat(1, 1, pos_embed.shape[2], 1)
+
+
+            pos_embed = pos_embed.expand(-1, channel_embed.shape[1], -1, -1)  # (1, c, L, pD)
+            pos_channel = torch.cat((pos_embed, channel_embed), dim=-1)  # (1, c, L, D)
+    
+            # add pos embed w/o cls token
+            x = x + pos_channel  # (N, G, L, D)
+            x = x.view(b, -1, D)  # (N, G*L, D)
+    
+            cls_pos_channel = torch.cat((self.encoder.pos_embed[:, :1, :], self.encoder.channel_cls_embed), dim=-1)  # (1, 1, D)
+            # stole cls_tokens impl from Phil Wang, thanks
+            cls_tokens = cls_pos_channel + self.encoder.cls_token.expand(b, -1, -1)
+            x = torch.cat((cls_tokens, x), dim=1)  # (N, 1 + c*L, D)
+            x = self.encoder.pos_drop(x)
+            
+            output_cls   = [x[:, 0]]          # prima del primo block
+            output_patch = [x[:, 1:]]
+    
+            for blk in self.encoder.blocks:
+                x = blk(x)
+                output_cls.append(x[:, 0])
+                output_patch.append(x[:, 1:])
+            num_register_tokens = 0
+            
+            # ─── dopo aver popolato output_cls / output_patch ──────────────────────────────
+            G = len(self.encoder.channel_groups)          # 3 gruppi (RGB-VEG-GEO)
+            
+            for i in range(len(output_patch)):
+                B, N, D = output_patch[i].shape           # N = G*L (es. 588)
+                L = N // G                                # num patch per gruppo (196)
+                output_patch[i] = (
+                    output_patch[i]
+                    .view(B, G, L, D)                     # (B, G, L, D)
+                    .mean(dim=1)                          # media sui gruppi → (B, L, D)
+                )
+
+            # ora output_patch[i].shape[1] = 196  ✔️
+            # ──────────────────────────────────────────────────────────────────────────────
+
+    
+
             
         else:
             x, num_register_tokens = self.encoder.prepare_tokens_with_masks(image)
@@ -146,6 +214,8 @@ class UNIC(nn.Module):
             )
             
         elif self.encoder.__class__.__name__.startswith("DinoVisionTransformer"):
+            out = self.lp(output_cls, output_patch)
+        elif self.encoder.__class__.__name__.startswith("GroupChannelsVisionTransformer"):
             out = self.lp(output_cls, output_patch)
         else:
             raise ValueError(f"Nessun match con il nome dell'encoder")
@@ -398,7 +468,15 @@ def _build_encoder_from_args(args):
             # ---------- 4) carica pesi ----------
             missing, unexpected = encoder.load_state_dict(state_dict, strict=False)
             logger.info(f"? DINOv2 loaded | missing={len(missing)} unexpected={len(unexpected)}")
-
+    
+    elif args.arch.startswith("grouping"):
+        print('encoder grouping')
+        encoder = grouping.vit_base_patch16(
+            patch_size=args.patch_size, img_size=args.image_size, in_chans=args.in_chans,
+            channel_groups=[(1, 2, 3), (4, 5, 6), (7, 8, 9)],
+            num_classes=args.num_classes, drop_path_rate=args.drop_path_rate, global_pool=False,
+        )
+        
     else:
         encoder = timesformer.get_model(
             arch=args.arch,
@@ -516,6 +594,13 @@ def build_student_from_args(args):
                 use_only_last_layer = False
                 # una testa per ciascun teacher
                 head_dims[tname] = TEACHER_CFG[tname.strip()]["num_features"]
+   
+    if encoder.__class__.__name__.startswith("GroupChannelsVisionTransformer"):
+        logger.info('prendo solo la metà dei blocchi per fare lp')
+        which_blocks = list(range(0, encoder.n_blocks, 2))  # un blocco sì, uno no
+    else: 
+        which_blocks = None
+
     
     if args.use_lp:
         lp_args = eval(args.lp_args)
@@ -525,6 +610,7 @@ def build_student_from_args(args):
             loss=args.loss,
             use_only_last_layer=use_only_last_layer,
             n_encoder_blocks=encoder.n_blocks,
+            which_blocks=which_blocks,
             **lp_args,
         )
     else:

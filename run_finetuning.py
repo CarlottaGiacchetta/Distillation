@@ -147,7 +147,7 @@ def get_args():
     # === Augmentations and other options ===
     parser.add_argument(
         "--transform",
-        type=bool,
+        type=utils.bool_flag,
         default=True,
         help="Whether to apply data augmentations.",
     )

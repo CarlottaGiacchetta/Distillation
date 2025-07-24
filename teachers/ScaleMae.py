@@ -72,7 +72,7 @@ class ScaleMAE(pl.LightningModule):
         x = x[:, self.bands, :, :] # x: (B, 12, H, W) → (B, 3, H, W)
         _, _, H, W = x.shape
         if (H, W) != (self.image_size, self.image_size):
-            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            #print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
             x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
         x = (x - self.mean.to(x.device)) / self.std.to(x.device)
         features = self.backbone.forward_features(x) # (B, 197, D)
@@ -83,7 +83,7 @@ class ScaleMAE(pl.LightningModule):
     def forward_features(self, x):
         _, _, H, W = x.shape
         if (H, W) != (self.image_size, self.image_size):
-            print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+            #print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
             x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
         
         features = self.backbone.forward_features(x)  # (B, 1+N, D)
@@ -130,7 +130,7 @@ class ScaleMAE(pl.LightningModule):
             x = x[:, self.rgb_band_indices, :, :]
             _, _, H, W = x.shape
             if (H, W) != (self.image_size, self.image_size):
-                print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
+                #print('faccio resize delle immagini perchè ho dimensioni: ', (H, W))
                 x = F.interpolate(x, size=(self.image_size, self.image_size), mode='bilinear', align_corners=False) # x: (B, 3, 120, 120) → (B, 3, 224, 224)
 
             logits = self(x)
@@ -171,6 +171,12 @@ def scalemae_VEG(checkpoint_path, loss=None):
     return model
     
 def scalemae_GEO(checkpoint_path, loss=None):
+    model = ScaleMAE.load_from_checkpoint(checkpoint_path)
+    model.eval()
+    model.to("cuda" if torch.cuda.is_available() else "cpu")
+    return model
+    
+def scalemae_MIX(checkpoint_path, loss=None):
     model = ScaleMAE.load_from_checkpoint(checkpoint_path)
     model.eval()
     model.to("cuda" if torch.cuda.is_available() else "cpu")
