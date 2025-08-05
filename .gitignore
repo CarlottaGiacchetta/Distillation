@@ -1,6 +1,10 @@
 unicc/venv
 dati/
+data/
+data1/
+data_so2sat_cls/
 
 modell/
 ScalemaeDistill9/
+logs/
 

@@ -23,7 +23,9 @@ from teachers.concat import TeacherAggregator
 from modeling.losses import unic_loss
 from dinov2.logging import setup_logging, ExternalLogger, MetricLogger
 from dinov2.distributed import get_global_rank
+#from Datasets import SSL4EOS12
 from Dataset import carica_dati
+
 
 
 logger = logging.getLogger()
@@ -327,7 +329,8 @@ def main(args):
 
     logger.info("Creating data loaders ...")
     train_loader, val_loader = carica_dati(args)
-    
+    test_loader = carica_dati(args, setup = 'test')
+ 
     sample = next(iter(train_loader))
     logger.info(f"Shape batch immagini: {sample['image'].shape}")
 

@@ -471,10 +471,10 @@ def _build_encoder_from_args(args):
     
     elif args.arch.startswith("grouping"):
         print('encoder grouping')
-        encoder = grouping.vit_base_patch16(
+        encoder = grouping.vit_large_patch16(
             patch_size=args.patch_size, img_size=args.image_size, in_chans=args.in_chans,
             channel_groups=[(1, 2, 3), (4, 5, 6), (7, 8, 9)],
-            num_classes=args.num_classes, drop_path_rate=args.drop_path_rate, global_pool=False,
+            num_classes=args.num_classes, drop_path_rate=args.drop_path_rate, global_pool=True,
         )
         
     else:

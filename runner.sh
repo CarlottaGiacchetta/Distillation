@@ -1,6 +1,6 @@
 #!/bin/bash
 
-GPU_ID=1;
+GPU_ID=3;
 
 mkdir -p logs
 
@@ -25,8 +25,9 @@ echo "Logging nvidia-smi to $smilog"
 SMI_PID=$!
 SMI_PID=$!
 
+
 docker run --rm --runtime=nvidia --name='class-cgiacchetta-rsde-'${GPU_ID} -e CUDA_VISIBLE_DEVICES=$GPU_ID --ipc=host -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
---ulimit memlock=-1 --ulimit stack=67108864 -t --rm -u $(id -u):$(id -g) -v $(pwd):$(pwd) -w $(pwd) class-cgiacchetta-rsde1:latest \
+--ulimit memlock=-1 --ulimit stack=67108864 -t --rm -u $(id -u):$(id -g) -v $(pwd):$(pwd) -w $(pwd) class-cgiacchetta-rsde3:latest \
 2>&1 | tee "$logfile"
 
 # Ferma logging nvidia-smi

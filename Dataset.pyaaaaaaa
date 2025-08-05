@@ -1,0 +1,178 @@
+import os
+import torch
+from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+import random
+
+# Importa la classe BigEarthNet e il DataModule di base da torchgeo
+from torchgeo.datasets import BigEarthNet
+from torchgeo.datamodules import NonGeoDataModule
+
+
+import itertools
+from torchgeo.datasets import BigEarthNet
+import torch
+import dataset4eo as eodata
+import litdata as ld
+import time
+from huggingface_hub import snapshot_download
+
+
+
+
+import dataset4eo as eodata
+
+
+
+
+class CustomBigEarthNet(BigEarthNet):
+    def __init__(self, subset: int = None, *args, **kwargs):
+        self._subset = subset  # Salva il valore del subset prima di inizializzare la classe base
+        super().__init__(*args, **kwargs)
+
+    def _load_folders(self) -> list[dict[str, str]]:
+        
+        filename = self.splits_metadata[self.split]['filename']
+        print(filename)
+        dir_s1 = self.metadata['s1']['directory']
+        dir_s2 = self.metadata['s2']['directory']
+
+        with open(os.path.join(self.root, filename)) as f:
+            lines = f.read().strip().splitlines()
+            
+
+
+        # Applica subito il subset (se richiesto)
+        if self._subset is not None and self._subset < len(lines):
+            lines = random.sample(lines, self._subset)
+
+        pairs = [line.split(',') for line in lines]
+
+        folders = [
+            {
+                's1': os.path.join(self.root, dir_s1, pair[1]),
+                's2': os.path.join(self.root, dir_s2, pair[0]),
+            }
+            for pair in pairs
+        ]
+        return folders
+
+
+class CustomBigEarthNetDataModule(NonGeoDataModule):
+    def __init__(self, subset: int = None, transform=None, batch_size: int = 64, num_workers: int = 0, **kwargs):
+        """
+        Args:
+            subset (int, optional): Numero di campioni da usare.
+            transform: Pipeline di trasformazioni da applicare ai dati.
+            batch_size (int): Dimensione del batch.
+            num_workers (int): Numero di processi per il DataLoader.
+            **kwargs: Altri parametri da passare al dataset.
+        """
+        self.subset = subset
+        self.kwargs = kwargs  
+        super().__init__(CustomBigEarthNet, batch_size, num_workers, **kwargs)
+
+    def setup(self, stage: str = None):
+        if stage in ["fit", None]:
+            self.train_dataset = CustomBigEarthNet(
+                split="train", 
+                subset=self.subset,
+                **self.kwargs
+            )
+    
+        if stage in ["fit", "validate", None]:
+            self.val_dataset = CustomBigEarthNet(
+                split="val", 
+                subset=self.subset, 
+                **self.kwargs
+            )
+        if stage in ["test", None]:
+            self.test_dataset = CustomBigEarthNet(
+                split="test", 
+                subset=self.subset, 
+                **self.kwargs
+            )
+
+def min_max_fn(x):
+    min_val = x.amin(dim=(2, 3), keepdim=True)  # per ogni immagine
+    max_val = x.amax(dim=(2, 3), keepdim=True)
+    return (x - min_val) / (max_val - min_val + 1e-8)
+
+
+def carica_dati(args, setup = "fit"):
+
+    print(args)
+    repo_id = eodata.builtin_datasets['so2sat']
+    print(repo_id)
+    
+    '''
+
+    dm = CustomBigEarthNetDataModule(
+            root=args.data_dir,
+            download=True,  
+            subset=None,
+            batch_size=args.batch_size,
+            num_workers=args.num_workers,
+            bands=args.bands,     # 's1', 's2' oppure 'all'
+            num_classes=args.num_classes,
+            transform=None   # 19 o 43
+        )
+    print('dm', dm)
+    
+    dm.setup(setup)
+    print('dm setup')
+
+    if setup == "fit":
+        train = dm.train_dataset
+        train_loader = dm.train_dataloader()
+        print('--creato train loader')
+
+        validation = dm.val_dataset
+        validation_loader = dm.val_dataloader()
+        print('--creato validation loader')
+        
+        return train_loader, validation_loader
+
+    else:
+        test = dm.test_dataset
+        test_loader = dm.test_dataloader()
+        print('--creato test loader')
+
+        return test_loader
+    '''
+    local_path = snapshot_download(
+        repo_id=repo_id,
+        repo_type = "dataset",
+        cache_dir="./data_so2sat_cls",  # Custom directory
+        revision="main"                 # Specific branch, tag, or commit
+    )
+    if setup == "fit":
+        split = "train"
+        train_dataset = eodata.StreamingDataset(input_dir=f"{local_path}/{split}", num_channels=18, channels_to_select=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,12], shuffle=True, drop_last=True)
+        train_dataloader = ld.StreamingDataLoader(train_dataset)
+        print('--creato train loader')
+        
+        iters = 0
+        start = time.time()
+        for sample in train_dataloader:
+            img, cls = sample['image'], sample['class']
+            print(img.shape)
+            iters += 1
+            if iters == 100:
+                break
+        exit()
+
+        validation = dm.val_dataset
+        validation_loader = dm.val_dataloader()
+        print('--creato validation loader')
+        
+        return train_loader, validation_loader
+
+    else:
+        test = dm.test_dataset
+        test_loader = dm.test_dataloader()
+        print('--creato test loader')
+
+        return test_loader
+
+

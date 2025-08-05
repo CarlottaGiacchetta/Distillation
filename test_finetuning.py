@@ -20,6 +20,8 @@ from utils import print_program_info
 
 from teachers.ScaleMae import ScaleMAE
 from teachers.ViT import ViT  # Assicurati che questo modulo sia disponibile
+from teachers.Grouping import GroupIng
+
 
 def get_args():
     parser = argparse.ArgumentParser()
@@ -214,9 +216,13 @@ def main(args):
     # Carica il checkpoint del modello
     checkpoint_path = args.checkpoint_path
     if args.model.lower() == "scalemae":
-        model = ScaleMAE.load_from_checkpoint(checkpoint_path, args=args, strict=False)
+        model = ScaleMAE(args)
     elif args.model.lower() == "vit":
-        model = ViT.load_from_checkpoint(checkpoint_path, args=args, strict=False)
+        if args.arch.lower() == "grouping":
+            print('sto facendo grouping')
+            model = GroupIng(args)
+        else: 
+            model = ViT(args)
     else:
         raise ValueError("Invalid model type specified.")
 

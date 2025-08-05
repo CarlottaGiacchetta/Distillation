@@ -72,7 +72,11 @@ class GroupChannelsVisionTransformer(timm.models.vision_transformer.VisionTransf
         pos_embed = self.pos_embed[:, 1:, :].unsqueeze(1)  # (1, 1, L, pD)
 
         # Channel embed same across (x,y) position, and pos embed same across channel (c)
-        channel_embed = channel_embed.expand(-1, -1, pos_embed.shape[2], -1)  # (1, c, L, cD)
+        #channel_embed = channel_embed.expand(-1, -1, pos_embed.shape[2], -1)  # (1, c, L, cD)
+        #channel_embed = channel_embed.expand(-1, -1, pos_embed.shape[2], -1).contiguous()
+        channel_embed = channel_embed.repeat(1, 1, pos_embed.shape[2], 1)
+
+
         pos_embed = pos_embed.expand(-1, channel_embed.shape[1], -1, -1)  # (1, c, L, pD)
         pos_channel = torch.cat((pos_embed, channel_embed), dim=-1)  # (1, c, L, D)
 
@@ -86,7 +90,8 @@ class GroupChannelsVisionTransformer(timm.models.vision_transformer.VisionTransf
         x = torch.cat((cls_tokens, x), dim=1)  # (N, 1 + c*L, D)
         x = self.pos_drop(x)
 
-        for blk in self.n_blocks:
+
+        for blk in self.blocks:
             x = blk(x)
 
         if self.global_pool:

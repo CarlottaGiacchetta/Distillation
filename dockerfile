@@ -1,30 +1,46 @@
-FROM nvcr.io/nvidia/pytorch:24.05-py3
+# -------------------------------------------
+#  PyTorch 2.5.1 | CUDA 12.4 | Python 3.11
+# -------------------------------------------
+FROM pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+
 ARG USER=standard
-ARG USER_ID=1006 # uid from the previus step
-ARG USER_GROUP=standard
-ARG USER_GROUP_ID=1006 # gid from the previus step
-ARG USER_HOME=/home/${USER}
+ARG UID=1006
+ARG GID=1006
+ARG HOME=/home/$USER
 
-
-RUN groupadd --gid $USER_GROUP_ID $USER \
-    && useradd --uid $USER_ID --gid $USER_GROUP_ID -m $USER
-
-
-RUN apt-get update && apt-get install -y curl
-
-
+# --------------------------------------------
+#  1. Utente non-root (opzionale ma consigliato)
+# --------------------------------------------
+RUN groupadd -g $GID $USER && \
+    useradd  -m -u $UID -g $GID -s /bin/bash $USER
 USER $USER
+WORKDIR $HOME
+
+# --------------------------------------------
+#  2. Aggiorna pip e installa librerie
+# --------------------------------------------
+RUN python -m pip install --upgrade pip && \
+    python -m pip install \
+        torchgeo==0.7.1 \
+        prettytable \
+        pycocotools \
+        wandb \
+        h5py \
+        litdata\
+        tensorboard\
+        scikit-learn
 
 
-RUN  pip install torchgeo 
 
-
+# --------------------------------------------
+#  4. Comando di default (modifica a piacere)
+# --------------------------------------------
+#    Per test rapidi:
+#CMD ["python", "extract.py"]
 
 #CONCATMEAN 
 
-CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--arch", "grouping", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/ConcatMeanGROUP", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
-
-
+#CMD ["python", "main_unic.py", "--batch_size", "32", "--data_dir", "dati", "--arch", "grouping", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/ConcatMeanGROUP_Large", "--teachers", "scalemae_rgb,scalemae_veg,scalemae_geo", "--Teacher_strategy", "[\"mean\"]", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
 
 #SINGLE TEACHER
 #CMD ["python", "main_unic.py", "--batch_size", "128", "--data_dir", "dati", "--arch", "vit_large", "--saveckpt_freq", "5", "--in_chans", "9", "--output_dir", "ScalemaeDistill9/Vit_Large/AAAA", "--teachers", "scalemae_rgb", "--Teacher_strategy", "", "--transform", "True", "--num_frames", "1", "--imagenet_pretrained", "False", "--patch_size", "16"]
@@ -46,10 +62,11 @@ CMD ["python", "main_unic.py", "--batch_size", "64", "--data_dir", "dati", "--ar
 
 
 #FINETUNING student
-#CMD ["python", "run_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/DinoTeacher/DinoV2LargePROVA/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/DinoV2LargePROVA/", "--output_dir", "ScalemaeDistill9/Vit_Large/DinoTeacher/DinoV2LargePROVA/", "--model", "vit", "--arch", "vit_large", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "14", "--transform", "False"]
+#CMD ["python", "run_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "ScalemaeDistill9/Vit_Large/ConcatMeanGROUP_Large/checkpoint_0020.pth", "--checkpoint_dir", "ScalemaeDistill9/Vit_Large/ConcatMeanGROUP_Large/", "--output_dir", "ScalemaeDistill9/Vit_Large/ConcatMeanGROUP_Large/", "--model", "vit", "--arch", "grouping", "--finetune_backbone", "False", "--in_chans", "9", "--lr", "1e-4", "--patience", "4", "--epochs", "100", "--fintuning_bands", "nove", "--patch_size", "16", "--transform", "False"]
+
 
 
 #TEST
-#CMD ["python", "test_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "/raid/home/rsde/cgiacchetta_unic/Distillation/modell/new/scalemae_MIX1/best-checkpoint.ckpt", "--output_dir", "/raid/home/rsde/cgiacchetta_unic/Distillation/modell/new/scalemae_MIX1/", "--model", "vit", "--arch", "vit_large", "--in_chans", "9", "--finetuning_bands", "nove"]
+CMD ["python", "test_finetuning.py", "--batch_size", "128", "--data_dir", "dati", "--checkpoint_path", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/ConcatMeanGROUP_Large/best-checkpointFreezed20.ckpt", "--output_dir", "/raid/home/rsde/cgiacchetta_unic/Distillation/ScalemaeDistill9/Vit_Large/ConcatMeanGROUP_Large/", "--model", "vit", "--arch", "grouping", "--in_chans", "9", "--finetuning_bands", "nove"]
 
 

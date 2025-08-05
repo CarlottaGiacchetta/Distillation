@@ -56,6 +56,7 @@ class CustomBigEarthNet(BigEarthNet):
             }
             for pair in pairs
         ]
+
         return folders
 
 
