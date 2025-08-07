@@ -513,6 +513,9 @@ def main(args):
     logger.info("Training time {}".format(total_time_str))
 
 
+
+from torchvision import transforms
+
 def train_one_epoch(
     model,
     teachers,
@@ -549,12 +552,15 @@ def train_one_epoch(
         )
     ):
 
-        image = sample["image"]
-        target = sample["label"]
+        images = sample["image"]
 
-        image = image.cuda(non_blocking=True)
-        target = target.cuda(non_blocking=True)
+        imaget = sample["image"]
+        
 
+
+        imaget = imaget.cuda(non_blocking=True)
+        images = images.cuda(non_blocking=True)
+        
         it = len(data_loader) * epoch + it
         for i, param_group in enumerate(optimizer.param_groups):
             param_group["lr"] = args.lr_schedule[it]
@@ -576,12 +582,12 @@ def train_one_epoch(
                 }   
             #A QUI NUOVO  
             else:
-                student_output = model(image) 
+                student_output = model(images) 
                   
 
             
             teacher_output = get_teacher_output(
-                image, teachers, teacher_ft_stats, args.tnorm_ema_schedule[it], args.Teacher_strategy, aggregation_parameter, aggregator=aggregator
+                imaget, teachers, teacher_ft_stats, args.tnorm_ema_schedule[it], args.Teacher_strategy, aggregation_parameter, aggregator=aggregator
             )
             
             
@@ -706,10 +712,8 @@ def evaluate(
         metric_logger.log_every(data_loader, 10, header)
     ):
         image = sample["image"]
-        target = sample["label"]
 
         image = image.cuda(non_blocking=True)
-        target = target.cuda(non_blocking=True)
 
         student_output = model(image)
         teacher_output = get_teacher_output(image, teachers, teacher_ft_stats, 0.0, args.Teacher_strategy, args.aggregation_parameter, aggregator)

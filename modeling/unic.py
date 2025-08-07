@@ -18,8 +18,8 @@ logger = logging.getLogger()
 
 
 IMAGENET_URLS = {
-    "vit_small": "models/backbonePretrained/dinov2_vits14_reg4_pretrain.pth",
-    "vit_large": "models/backbonePretrained/dinov2_vitl14_reg4_pretrain.pth",
+    "vit_small": "modell/backbonePretrained/dinov2_vits14_reg4_pretrain.pth",
+    "vit_large": "modell/backbonePretrained/dinov2_vitl14_reg4_pretrain.pth",
 }
 
 
@@ -430,6 +430,8 @@ class AdaptMLP(nn.Module):
         return self.scale * self.layers(x)
 
 
+import timm
+
 def _build_encoder_from_args(args):
 
     if args.arch.startswith("vit"):
@@ -443,8 +445,11 @@ def _build_encoder_from_args(args):
         )
                 
         if getattr(args, "imagenet_pretrained", False):
+            
             ckpt_path = IMAGENET_URLS["_".join(args.arch.split("_")[:2])]
             logger.info(f"Loading DINOv2 from {ckpt_path}")
+            
+
 
             # ---------- 1) carica state_dict ----------
             state_dict = torch.load(ckpt_path, map_location="cpu")

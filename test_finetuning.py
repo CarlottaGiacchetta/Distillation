@@ -23,6 +23,7 @@ from teachers.ViT import ViT  # Assicurati che questo modulo sia disponibile
 from teachers.Grouping import GroupIng
 
 
+
 def get_args():
     parser = argparse.ArgumentParser()
 
@@ -212,23 +213,93 @@ def get_metrics(labels, predictions, probabilities):
 
     return metrics
 
+
+import re, torch
+
 def main(args):
     # Carica il checkpoint del modello
     checkpoint_path = args.checkpoint_path
+    args.checkpoint_path = None
     if args.model.lower() == "scalemae":
-        model = ScaleMAE(args)
+        model = ScaleMAE.load_from_checkpoint(checkpoint_path, args=args, strict=True)
     elif args.model.lower() == "vit":
         if args.arch.lower() == "grouping":
-            print('sto facendo grouping')
             model = GroupIng(args)
+            ckpt = torch.load(checkpoint_path)
+            sd = ckpt.get("state_dict", ckpt)          # lightning o plain
+            # ----- 1. Detect prefix -------------------------------------------------
+            encoder_prefix = None
+            for p in ("module.encoder.", "encoder."):
+                if any(k.startswith(p) for k in sd):
+                    encoder_prefix = p
+                    break
+            if encoder_prefix is None:
+                raise RuntimeError("Nessun prefisso encoder.* trovato nel checkpoint")
+        
+            # ----- 2. Encoder state_dict senza prefisso -----------------------------
+            enc_sd = {re.sub(f"^{encoder_prefix}", "", k): v
+                      for k, v in sd.items() if k.startswith(encoder_prefix)}
+            miss, unexp = model.encoder.load_state_dict(enc_sd, strict=True)
+            print(f"[ENCODER] loaded from {checkpoint_path}")
+            print("   missing :", len(miss), " | unexpected :", len(unexp))
+        
+            # ----- 3. Linear head ----------------------------------------------------
+            if "classifier.weight" in sd:
+                w, b = sd["classifier.weight"], sd["classifier.bias"]
+                if w.shape == model.classifier.weight.shape:
+                    model.classifier.load_state_dict(
+                        {"weight": w, "bias": b}, strict=True
+                    )
+                    print("[HEAD]   classifier caricato con shape", tuple(w.shape))
+                else:
+                    print(f"[HEAD]   shape mismatch ({tuple(w.shape)} ? "
+                          f"{tuple(model.classifier.weight.shape)}). "
+                          "Head lasciato random.")
+            else:
+                print("[HEAD]   pesi head assenti")
+
         else: 
             model = ViT(args)
+            ckpt = torch.load(checkpoint_path)
+            sd = ckpt.get("state_dict", ckpt)          # lightning o plain
+            # ----- 1. Detect prefix -------------------------------------------------
+            encoder_prefix = None
+            for p in ("module.encoder.", "encoder."):
+                if any(k.startswith(p) for k in sd):
+                    encoder_prefix = p
+                    break
+            if encoder_prefix is None:
+                raise RuntimeError("Nessun prefisso encoder.* trovato nel checkpoint")
+        
+            # ----- 2. Encoder state_dict senza prefisso -----------------------------
+            enc_sd = {re.sub(f"^{encoder_prefix}", "", k): v
+                      for k, v in sd.items() if k.startswith(encoder_prefix)}
+            miss, unexp = model.encoder.load_state_dict(enc_sd, strict=True)
+            print(f"[ENCODER] loaded from {checkpoint_path}")
+            print("   missing :", len(miss), " | unexpected :", len(unexp))
+        
+            # ----- 3. Linear head ----------------------------------------------------
+            if "classifier.weight" in sd:
+                w, b = sd["classifier.weight"], sd["classifier.bias"]
+                if w.shape == model.classifier.weight.shape:
+                    model.classifier.load_state_dict(
+                        {"weight": w, "bias": b}, strict=True
+                    )
+                    print("[HEAD]   classifier caricato con shape", tuple(w.shape))
+                else:
+                    print(f"[HEAD]   shape mismatch ({tuple(w.shape)} ? "
+                          f"{tuple(model.classifier.weight.shape)}). "
+                          "Head lasciato random.")
+            else:
+                print("[HEAD]   pesi head assenti")
+            
     else:
         raise ValueError("Invalid model type specified.")
-
-    model.eval()
+        
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
+    model.eval()
+    
     print("-- Caricato il modello:", args.model)
 
     # Carica il dataset di test

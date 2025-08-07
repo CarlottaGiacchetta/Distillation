@@ -30,7 +30,7 @@ class GroupIng(pl.LightningModule):
         self.encoder = vit_large_patch16(
             patch_size = args.get("patch_size", 16), img_size=args.get("image_size", 224), in_chans=args.get("in_chans", 12),
             channel_groups=[(1, 2, 3), (4, 5, 6), (7, 8, 9)],
-            num_classes=args.get("num_classes", 19), drop_path_rate=args.get("drop_path_rate", 0.0), global_pool=True,
+            num_classes=args.get("num_classes", 19), drop_path_rate=args.get("drop_path_rate", 0.0), global_pool=False,
         )
         #'''
         
@@ -94,7 +94,6 @@ class GroupIng(pl.LightningModule):
         #x = (x - self.mean.to(x.device)) / self.std.to(x.device)
         features = self.encoder.forward_features(x)
         cls_token = features
-        print(cls_token.shape)
         return self.classifier(cls_token)
     
 
