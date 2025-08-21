@@ -23,8 +23,10 @@ from teachers.concat import TeacherAggregator
 from modeling.losses import unic_loss
 from dinov2.logging import setup_logging, ExternalLogger, MetricLogger
 from dinov2.distributed import get_global_rank
-#from Datasets import SSL4EOS12
-from Dataset import carica_dati
+
+
+from Dataset.BigEarthNet import carica_bigearthnet
+from Dataset.SSLeo import carica_ssl
 
 
 
@@ -42,6 +44,12 @@ def get_args():
         default="vit_base", #or time_tiny
         help="Architecture of the student model. "
         "See dinov2/models/vision_transformer.py for options. See dinov2/models/timesformer.py for options.",
+    )
+    parser.add_argument(
+        "--dataset",
+        type=str,
+        default = "bigearthnet",
+        help="bigeartnet or ssl4eo",
     )
     
     parser.add_argument("--imagenet_pretrained", 
@@ -328,8 +336,14 @@ def main(args):
     ext_logger = ExternalLogger(args.output_dir)
 
     logger.info("Creating data loaders ...")
-    train_loader, val_loader = carica_dati(args)
-    test_loader = carica_dati(args, setup = 'test')
+    if args.dataset == 'bigeartnet':
+        logger.info("Creating data loaders bigeartnet...")
+        train_loader, val_loader = carica_bigearthnet(args)
+    elif args.dataset == 'ssl4eo':
+        logger.info("Creating data loaders ssl4eo...")
+        train_loader, val_loader = carica_ssl(args)
+    else:
+        raise ValueError(f'Dataset {args.dataset} non riconosciuto')
  
     sample = next(iter(train_loader))
     logger.info(f"Shape batch immagini: {sample['image'].shape}")
@@ -488,6 +502,7 @@ def main(args):
             epoch,
             ext_logger,
             args,
+            aggregation_parameter,
         )
 
         save_dict = {
@@ -576,7 +591,7 @@ def train_one_epoch(
         with torch.cuda.amp.autocast(fp16_scaler is not None):
             #DA QUI NUOVO
             if args.in_chans == 9 and "DinoV2Large_baseline" in args.teachers:
-                student_output = model(image[:, [1,2,3,4,5,6,7,10,11], :, :])
+                student_output = model(images[:, [1,2,3,4,5,6,7,10,11], :, :])
                 student_output = {
                     f"DinoV2Large_baseline_{k}": v for k, v in student_output.items()
                 }   
@@ -587,8 +602,18 @@ def train_one_epoch(
 
             
             teacher_output = get_teacher_output(
-                imaget, teachers, teacher_ft_stats, args.tnorm_ema_schedule[it], args.Teacher_strategy, aggregation_parameter, aggregator=aggregator
+                imaget,
+                teachers,
+                teacher_ft_stats,
+                args.tnorm_ema_schedule[it],
+                args.Teacher_strategy, 
+                aggregation_parameter,
+                aggregator=aggregator,
+                dataset=args.dataset,
+                use_fp16=getattr(args, "use_fp16", True),
             )
+            
+            
             
             
             loss, _ = unic_loss(
@@ -700,6 +725,7 @@ def evaluate(
     epoch,
     ext_logger,
     args,
+    aggregation_parameter,
 ):
     metric_logger = MetricLogger(delimiter="  ")
     header = "Test - Epoch: [{}/{}]".format(epoch, args.epochs)
@@ -716,8 +742,18 @@ def evaluate(
         image = image.cuda(non_blocking=True)
 
         student_output = model(image)
-        teacher_output = get_teacher_output(image, teachers, teacher_ft_stats, 0.0, args.Teacher_strategy, args.aggregation_parameter, aggregator)
-
+        teacher_output = get_teacher_output(
+                image,
+                teachers,
+                teacher_ft_stats,
+                args.tnorm_ema_schedule[it],
+                args.Teacher_strategy, 
+                aggregation_parameter,
+                aggregator=aggregator,
+                dataset=args.dataset,
+                use_fp16=getattr(args, "use_fp16", True),
+            )
+            
         metric_dict = {}
         unic_loss(
             student_output,

@@ -14,7 +14,7 @@ from sklearn.metrics import (
     precision_recall_fscore_support
 )
 
-from Dataset import carica_dati
+from Dataset.BigEarthNet import carica_bigearthnet
 from utils import print_program_info
 
 
@@ -130,6 +130,7 @@ def get_args():
     )
 
     args = parser.parse_args()
+    args.dataset = 'bigeartnet'
     return args
 
 def get_metrics(labels, predictions, probabilities):
@@ -303,7 +304,7 @@ def main(args):
     print("-- Caricato il modello:", args.model)
 
     # Carica il dataset di test
-    test_loader = carica_dati(args, setup="test")
+    test_loader = carica_bigearthnet(args, setup="test")
     print("-- Caricati i dati di test")
 
     # Inferenza

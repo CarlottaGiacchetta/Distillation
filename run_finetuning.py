@@ -11,7 +11,8 @@ from dinov2.models import vision_transformer, grouping
 from teachers.ScaleMae import ScaleMAE
 from teachers.ViT import ViT
 from teachers.Grouping import GroupIng
-from Dataset import carica_dati
+
+from Dataset.BigEarthNet import carica_bigearthnet
 import utils
 
 logger = logging.getLogger()
@@ -165,12 +166,13 @@ def get_args():
 
     args = parser.parse_args()
     os.makedirs(args.output_dir, exist_ok=True)
+    args.dataset = 'bigeartnet'
     return args
 
 
 def main(args):
     utils.print_program_info(args)
-    train_loader, validation_loader = carica_dati(args)
+    train_loader, validation_loader = carica_bigearthnet(args)
 
     if args.model.lower() == "scalemae":
         model = ScaleMAE(args)

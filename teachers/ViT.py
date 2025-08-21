@@ -34,8 +34,8 @@ class ViT(pl.LightningModule):
         
         self.finetuning_bands = args.get("finetuning_bands", "nove")
         self.bands = CONFIG[self.finetuning_bands]["bands"]
-        self.mean = CONFIG[self.finetuning_bands]["mean"]
-        self.std = CONFIG[self.finetuning_bands]["std"]
+        self.mean = CONFIG[self.finetuning_bands]["mean"][args.get("dataset")]
+        self.std = CONFIG[self.finetuning_bands]["std"][args.get("dataset")]
 
         checkpoint_path = args.get("checkpoint_path")
         if checkpoint_path:

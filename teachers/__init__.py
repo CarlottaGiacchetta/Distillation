@@ -22,8 +22,11 @@ def get_teacher_output(
     strategy: List[str] = None,
     aggregation_parameter: Dict[str, float] = None,
     aggregator=None,
+    dataset = 'aa',
     use_fp16=True
 ) -> Dict[str, Dict[str, torch.Tensor]]:
+
+
 
     teacher_output = defaultdict(dict)
     cls_list, patch_list = [], []
@@ -46,8 +49,8 @@ def get_teacher_output(
                 finetuning_bands = TEACHER_CFG[tname]["finetuning_bands"]
        
                 device = "cuda"
-                mean = CONFIG[finetuning_bands]["mean"].to(device)
-                std = CONFIG[finetuning_bands]["std"].to(device)
+                mean = CONFIG[finetuning_bands]["mean"][dataset].to(device)
+                std = CONFIG[finetuning_bands]["std"][dataset].to(device)
                 bands = CONFIG[finetuning_bands]["bands"]
           
                 

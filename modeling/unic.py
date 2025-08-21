@@ -24,13 +24,14 @@ IMAGENET_URLS = {
 
 
 class UNIC(nn.Module):
-    def __init__(self, encoder, lp, in_chans, strategy = 'split', num_frames = 3):
+    def __init__(self, encoder, lp, in_chans, strategy = 'split', num_frames = 3, dataset = 'aa'):
         super().__init__()
         self.encoder = encoder
         self.lp = lp
         self.in_chans = in_chans
         self.strategy = strategy
         self.num_frames = num_frames
+        self.dataset = dataset
 
     def forward(self, image):
         _, _, H, W = image.shape
@@ -49,9 +50,9 @@ class UNIC(nn.Module):
             band = "nove"
             
         
-        image = image[:, CONFIG[band]['bands'], :]
-        std = CONFIG[band]['std']
-        mean = CONFIG[band]['mean']
+        image = image[:, CONFIG[band]['bands'], :, :]
+        std = CONFIG[band]['std'][self.dataset]
+        mean = CONFIG[band]['mean'][self.dataset]
         
         image = (image - mean.to(image.device)) / std.to(image.device)
         
@@ -629,7 +630,7 @@ def build_student_from_args(args):
       )
       
 
-    model = UNIC(encoder, lp, args.in_chans, args.Student_strategy, args.num_frames)
+    model = UNIC(encoder, lp, args.in_chans, args.Student_strategy, args.num_frames, args.dataset)
 
     return model
 
